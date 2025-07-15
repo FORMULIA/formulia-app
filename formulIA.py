@@ -182,3 +182,48 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
             "total_docentes": total_docentes,
             "cantidad_refrigerios": cantidad_refrigerios
         }
+
+# Paso 9: Viajes, hotel y temas (solo si Formación presencial)
+if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
+    st.header("8️⃣ Logística de formación - Viajes, hotel y temas")
+
+    # Pregunta: número de viajes
+    num_viajes = st.number_input(
+        "¿Cuántos viajes estimas para desarrollar las formaciones?",
+        min_value=1,
+        value=3,
+        step=1
+    )
+
+    # Pregunta: valor noche de hotel
+    valor_hotel = st.number_input(
+        "¿Cuál es el valor por noche del hotel (COP)?",
+        min_value=50000,
+        value=150000,
+        step=10000
+    )
+
+    # Pregunta: selección de temas de formación
+    st.markdown("## 🧠 Selección de temas de formación")
+
+    # Lista simulada de temas (en la versión con Excel se extraerán dinámicamente)
+    temas_formacion = [
+        "Modelo pedagógico y didáctico",
+        "Didáctica para transición",
+        "Didáctica para primero",
+        "Evaluación formativa",
+        "Uso de materiales en el aula",
+        "Acompañamiento a docentes"
+    ]
+
+    temas_seleccionados = st.multiselect(
+        "Selecciona los temas que deseas incluir en la formación",
+        temas_formacion
+    )
+
+    # Guardar en sesión
+    st.session_state["formacion_logistica"] = {
+        "num_viajes": num_viajes,
+        "valor_hotel": valor_hotel,
+        "temas": temas_seleccionados
+    }
