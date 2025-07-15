@@ -90,7 +90,6 @@ for sede in sedes:
                     key=f"{sede}_{grado}_doc"
                 )
 
-            # Estimar docentes si no se ingresa número
             if doc == 0 and est > 0:
                 doc = round(est / 25)
                 st.markdown(f"🔎 *Docentes estimados: {doc}*")
@@ -100,7 +99,6 @@ for sede in sedes:
                 "docentes": doc
             }
 
-# Guardar datos de población en sesión
 st.session_state["poblacion_por_sede"] = poblacion_por_sede
 
 # Paso 7: Selección de materiales por estrategia
@@ -145,28 +143,24 @@ for estrategia in estrategias:
     )
     materiales_seleccionados[estrategia] = seleccion
 
-# Guardar materiales seleccionados
 st.session_state["materiales_seleccionados"] = materiales_seleccionados
 
-# Paso 8: Refrigerios (solo si Formación presencial)
+# Paso 8: Refrigerios
 if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
     st.header("7️⃣ Logística de formación - Refrigerios")
 
     incluir_refrigerios = st.radio("¿Deseas incluir refrigerios?", ["Sí", "No"])
 
     if incluir_refrigerios == "Sí":
-        # Preguntar valor unitario
-        valor_actual_refrigerio = 8000  # valor base que puedes cambiar si se conecta a Excel
+        valor_actual_refrigerio = 8000
         st.markdown(f"💰 Valor actual del refrigerio: **COP ${valor_actual_refrigerio:,.0f}**")
         actualizar_valor = st.radio("¿Deseas actualizar este valor?", ["No", "Sí"])
 
         if actualizar_valor == "Sí":
             valor_actual_refrigerio = st.number_input("Nuevo valor del refrigerio (COP)", min_value=1000, step=500)
 
-        # Número de sesiones
         num_sesiones = st.number_input("¿En cuántas sesiones se ofrecerán refrigerios?", min_value=1, step=1)
 
-        # Total de docentes
         total_docentes = sum(
             info["docentes"]
             for sede in st.session_state["poblacion_por_sede"].values()
@@ -187,26 +181,10 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
 if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
     st.header("8️⃣ Logística de formación - Viajes, hotel y temas")
 
-    # Pregunta: número de viajes
-    num_viajes = st.number_input(
-        "¿Cuántos viajes estimas para desarrollar las formaciones?",
-        min_value=1,
-        value=3,
-        step=1
-    )
+    num_viajes = st.number_input("¿Cuántos viajes estimas para desarrollar las formaciones?", min_value=1, value=3, step=1)
+    valor_hotel = st.number_input("¿Cuál es el valor por noche del hotel (COP)?", min_value=50000, value=150000, step=10000)
 
-    # Pregunta: valor noche de hotel
-    valor_hotel = st.number_input(
-        "¿Cuál es el valor por noche del hotel (COP)?",
-        min_value=50000,
-        value=150000,
-        step=10000
-    )
-
-    # Pregunta: selección de temas de formación
     st.markdown("## 🧠 Selección de temas de formación")
-
-    # Lista simulada de temas (en la versión con Excel se extraerán dinámicamente)
     temas_formacion = [
         "Modelo pedagógico y didáctico",
         "Didáctica para transición",
@@ -215,13 +193,8 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
         "Uso de materiales en el aula",
         "Acompañamiento a docentes"
     ]
+    temas_seleccionados = st.multiselect("Selecciona los temas que deseas incluir en la formación", temas_formacion)
 
-    temas_seleccionados = st.multiselect(
-        "Selecciona los temas que deseas incluir en la formación",
-        temas_formacion
-    )
-
-    # Guardar en sesión
     st.session_state["formacion_logistica"] = {
         "num_viajes": num_viajes,
         "valor_hotel": valor_hotel,
@@ -232,7 +205,6 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
 if "Formación" in componentes:
     st.header("9️⃣ Grupos de formación")
 
-    # Total de docentes acumulados de todas las sedes
     total_docentes = sum(
         info["docentes"]
         for sede in st.session_state["poblacion_por_sede"].values()
@@ -242,7 +214,7 @@ if "Formación" in componentes:
     if total_docentes == 0:
         st.warning("⚠️ No se han registrado docentes. Asegúrate de completar los pasos anteriores.")
     else:
-        grupos_formacion = (total_docentes + 39) // 40  # redondea hacia arriba
+        grupos_formacion = (total_docentes + 39) // 40
         st.success(f"👥 Total de docentes: {total_docentes}")
         st.info(f"🧑‍🏫 Se requerirán **{grupos_formacion} grupo(s)** de formación (máx. 40 personas por grupo)")
 
@@ -273,7 +245,6 @@ if "Remediación" in estrategias:
 
     st.success(f"👧🧒 Se estima que {n_estudiantes_con_remediacion} estudiantes requieren remediación")
 
-    # Guardar en sesión
     st.session_state["remediacion"] = {
         "porcentaje": porcentaje_remediacion,
         "total_grados_2_5": total_estudiantes_remediacion,
