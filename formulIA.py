@@ -217,3 +217,64 @@ if "pruebas_monitoreo" in st.session_state and st.session_state["pruebas_monitor
         }
 
     st.session_state["configuracion_pruebas"] = configuracion_pruebas
+
+import openpyxl
+from io import BytesIO
+
+st.markdown("---")
+st.subheader("📤 Exportar archivo Excel")
+
+if st.button("📥 Generar archivo Excel con datos"):
+    excel_path = "estructura de costos FormulIA.xlsx"  # Asegúrate que esté en el repositorio raíz
+
+    try:
+        wb = openpyxl.load_workbook(excel_path)
+        ws = wb["FORMACIÓN"]
+
+        # Datos principales desde session_state
+        grupos = st.session_state["grupos_formacion"]["n_grupos"]
+        viajes = st.session_state["formacion_logistica"]["num_viajes"]
+        horas_viaje = viajes * 3
+        temas = st.session_state["formacion_logistica"]["temas"]
+
+        costo_transporte = st.session_state["formacion_logistica"]["costo_transporte"]
+        valor_hotel = st.session_state["formacion_logistica"]["valor_hotel"]
+
+        refrigerios = st.session_state.get("refrigerios", None)
+        if refrigerios:
+            costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"]
+        else:
+            costo_refrigerio_total = 0
+
+        # Recorremos filas 3 a 9 (temas)
+        for row in range(3, 10):
+            tema = ws[f"B{row}"].value
+            if tema in temas:
+                horas = ws[f"C{row}"].value
+                if isinstance(horas, (int, float)):
+                    ws[f"C{row}"] = horas * grupos         # Columna C - horas efectivas
+                ws[f"F{row}"] = horas_viaje               # Columna F - horas de viaje
+            else:
+                ws[f"C{row}"] = 0
+                ws[f"F{row}"] = 0
+
+        # Actualizar celdas únicas
+        ws["C14"] = valor_hotel
+        ws["C16"] = costo_transporte
+        ws["C24"] = costo_refrigerio_total
+
+        # Guardar y ofrecer descarga
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        st.success("✅ Archivo Excel actualizado correctamente.")
+        st.download_button(
+            label="⬇️ Descargar archivo actualizado",
+            data=output,
+            file_name="formulIA_actualizado.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        st.error(f"❌ Error al procesar el archivo Excel: {e}")
