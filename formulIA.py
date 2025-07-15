@@ -227,3 +227,26 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
         "valor_hotel": valor_hotel,
         "temas": temas_seleccionados
     }
+
+# Paso 10: Cálculo de grupos de formación
+if "Formación" in componentes:
+    st.header("9️⃣ Grupos de formación")
+
+    # Total de docentes acumulados de todas las sedes
+    total_docentes = sum(
+        info["docentes"]
+        for sede in st.session_state["poblacion_por_sede"].values()
+        for info in sede.values()
+    )
+
+    if total_docentes == 0:
+        st.warning("⚠️ No se han registrado docentes. Asegúrate de completar los pasos anteriores.")
+    else:
+        grupos_formacion = (total_docentes + 39) // 40  # redondea hacia arriba
+        st.success(f"👥 Total de docentes: {total_docentes}")
+        st.info(f"🧑‍🏫 Se requerirán **{grupos_formacion} grupo(s)** de formación (máx. 40 personas por grupo)")
+
+        st.session_state["grupos_formacion"] = {
+            "total_docentes": total_docentes,
+            "n_grupos": grupos_formacion
+        }
