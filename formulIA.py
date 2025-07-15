@@ -250,3 +250,32 @@ if "Formación" in componentes:
             "total_docentes": total_docentes,
             "n_grupos": grupos_formacion
         }
+
+# Paso 11: Remediación - porcentaje estimado de estudiantes
+if "Remediación" in estrategias:
+    st.header("🔟 Estrategia de Remediación")
+
+    porcentaje_remediacion = st.slider(
+        "¿Qué porcentaje estimado de estudiantes de 2° a 5° requieren remediación?",
+        min_value=0,
+        max_value=100,
+        value=25,
+        step=1
+    )
+
+    total_estudiantes_remediacion = 0
+    for sede, grados in st.session_state["poblacion_por_sede"].items():
+        for grado in ["2°", "3°", "4°", "5°"]:
+            if grado in grados:
+                total_estudiantes_remediacion += grados[grado]["estudiantes"]
+
+    n_estudiantes_con_remediacion = int(round(total_estudiantes_remediacion * porcentaje_remediacion / 100))
+
+    st.success(f"👧🧒 Se estima que {n_estudiantes_con_remediacion} estudiantes requieren remediación")
+
+    # Guardar en sesión
+    st.session_state["remediacion"] = {
+        "porcentaje": porcentaje_remediacion,
+        "total_grados_2_5": total_estudiantes_remediacion,
+        "estimado_remediacion": n_estudiantes_con_remediacion
+    }
