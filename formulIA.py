@@ -147,3 +147,38 @@ for estrategia in estrategias:
 
 # Guardar materiales seleccionados
 st.session_state["materiales_seleccionados"] = materiales_seleccionados
+
+# Paso 8: Refrigerios (solo si Formación presencial)
+if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
+    st.header("7️⃣ Logística de formación - Refrigerios")
+
+    incluir_refrigerios = st.radio("¿Deseas incluir refrigerios?", ["Sí", "No"])
+
+    if incluir_refrigerios == "Sí":
+        # Preguntar valor unitario
+        valor_actual_refrigerio = 8000  # valor base que puedes cambiar si se conecta a Excel
+        st.markdown(f"💰 Valor actual del refrigerio: **COP ${valor_actual_refrigerio:,.0f}**")
+        actualizar_valor = st.radio("¿Deseas actualizar este valor?", ["No", "Sí"])
+
+        if actualizar_valor == "Sí":
+            valor_actual_refrigerio = st.number_input("Nuevo valor del refrigerio (COP)", min_value=1000, step=500)
+
+        # Número de sesiones
+        num_sesiones = st.number_input("¿En cuántas sesiones se ofrecerán refrigerios?", min_value=1, step=1)
+
+        # Total de docentes
+        total_docentes = sum(
+            info["docentes"]
+            for sede in st.session_state["poblacion_por_sede"].values()
+            for info in sede.values()
+        )
+
+        cantidad_refrigerios = int(round(total_docentes * 1.2 * num_sesiones))
+
+        st.success(f"🥤 Total de refrigerios estimados: {cantidad_refrigerios} unidades")
+        st.session_state["refrigerios"] = {
+            "valor_unitario": valor_actual_refrigerio,
+            "num_sesiones": num_sesiones,
+            "total_docentes": total_docentes,
+            "cantidad_refrigerios": cantidad_refrigerios
+        }
