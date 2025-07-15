@@ -113,3 +113,48 @@ for sede in sedes:
 
 # Guardar en sesión
 st.session_state["poblacion_por_sede"] = poblacion_por_sede
+
+# Paso 7: Selección de materiales por estrategia
+st.header("6️⃣ Selección de materiales a incluir")
+
+materiales_por_estrategia = {
+    "Transición": [
+        "Cartilla docente transición",
+        "Cartilla estudiante transición",
+        "Cartilla de cuentos transición",
+        "Kit aula transición"
+    ],
+    "Primero": [
+        "Guía docente tomo I",
+        "Guía docente tomo II",
+        "Guía estudiante unidad I",
+        "Guía estudiante unidad II",
+        "Guía estudiante unidad III",
+        "Guía estudiante unidad IV",
+        "Libro de cuentos",
+        "Big Book",
+        "Fichas",
+        "Componedores aula",
+        "Componedores individuales"
+    ],
+    "Remediación": [
+        "Guía docente remediación",
+        "Guía estudiante remediación",
+        "Cartilla cuentos remediación",
+        "Fichas de apoyo remediación"
+    ]
+}
+
+materiales_seleccionados = {}
+
+for estrategia in estrategias:
+    st.subheader(f"📦 Materiales para {estrategia}")
+    seleccion = st.multiselect(
+        f"Selecciona los materiales que deseas incluir para {estrategia}",
+        materiales_por_estrategia[estrategia],
+        key=f"materiales_{estrategia}"
+    )
+    materiales_seleccionados[estrategia] = seleccion
+
+# Guardar en sesión
+st.session_state["materiales_seleccionados"] = materiales_seleccionados
