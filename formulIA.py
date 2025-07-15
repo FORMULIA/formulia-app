@@ -56,3 +56,60 @@ st.session_state["resumen_propuesta"] = {
     "estrategias": estrategias,
     "sedes": sedes,
 }
+
+# Paso 6: Población por sede y grado
+st.header("5️⃣ Registro de estudiantes y docentes por sede")
+
+poblacion_por_sede = {}
+
+grados_por_estrategia = {
+    "Transición": ["0°"],
+    "Primero": ["1°"],
+    "Remediación": ["2°", "3°", "4°", "5°"]
+}
+
+# Determinar grados a preguntar según las estrategias seleccionadas
+grados_requeridos = set()
+for est in estrategias:
+    grados_requeridos.update(grados_por_estrategia[est])
+
+# Preguntar si se desea incluir docentes de todos los grados
+incluir_todos_docentes = st.radio(
+    "¿Deseas incluir a los docentes de todos los grados, independientemente de la estrategia seleccionada?",
+    ["Sí", "No"]
+)
+
+for sede in sedes:
+    st.subheader(f"Sede: {sede}")
+    poblacion_por_sede[sede] = {}
+
+    for grado in ["0°", "1°", "2°", "3°", "4°", "5°"]:
+        incluir_grado = grado in grados_requeridos or incluir_todos_docentes == "Sí"
+
+        if incluir_grado:
+            col1, col2 = st.columns(2)
+            with col1:
+                est = st.number_input(
+                    f"👩‍🎓 Estudiantes en {grado} - {sede}",
+                    min_value=0,
+                    key=f"{sede}_{grado}_est"
+                )
+            with col2:
+                doc = st.number_input(
+                    f"👨‍🏫 Docentes en {grado} - {sede} (dejar en 0 si no sabes)",
+                    min_value=0,
+                    key=f"{sede}_{grado}_doc"
+                )
+
+            # Estimar docentes si no se ingresa número
+            if doc == 0 and est > 0:
+                doc = round(est / 25)
+                st.markdown(f"🔎 *Docentes estimados: {doc}*")
+
+            poblacion_por_sede[sede][grado] = {
+                "estudiantes": est,
+                "docentes": doc
+            }
+
+# Guardar en sesión
+st.session_state["poblacion_por_sede"] = poblacion_por_sede
