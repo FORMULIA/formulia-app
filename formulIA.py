@@ -4,7 +4,6 @@ st.set_page_config(page_title="FormulIA - Generador de propuestas", layout="cent
 
 st.title("🧠 FormulIA")
 st.subheader("Sistema automatizado para estructuración de propuestas")
-
 st.markdown("---")
 
 # Paso 1: Componentes
@@ -38,7 +37,7 @@ estrategias = st.multiselect(
     ["Transición", "Primero", "Remediación"]
 )
 
-# Paso 5: Sedes
+# Paso 5: Sedes educativas
 st.header("4️⃣ Sedes educativas")
 
 num_sedes = st.number_input("¿Cuántas sedes serán impactadas?", min_value=1, step=1)
@@ -46,16 +45,6 @@ sedes = []
 for i in range(int(num_sedes)):
     nombre_sede = st.text_input(f"Nombre de la sede #{i+1}", key=f"sede_{i}")
     sedes.append(nombre_sede)
-
-# Guardamos los datos en una variable de sesión para usarlos después
-st.session_state["resumen_propuesta"] = {
-    "componentes": componentes,
-    "modalidades": modalidades,
-    "organizacion": org,
-    "municipio": municipio,
-    "estrategias": estrategias,
-    "sedes": sedes,
-}
 
 # Paso 6: Población por sede y grado
 st.header("5️⃣ Registro de estudiantes y docentes por sede")
@@ -111,7 +100,7 @@ for sede in sedes:
                 "docentes": doc
             }
 
-# Guardar en sesión
+# Guardar datos de población en sesión
 st.session_state["poblacion_por_sede"] = poblacion_por_sede
 
 # Paso 7: Selección de materiales por estrategia
@@ -156,5 +145,5 @@ for estrategia in estrategias:
     )
     materiales_seleccionados[estrategia] = seleccion
 
-# Guardar en sesión
+# Guardar materiales seleccionados
 st.session_state["materiales_seleccionados"] = materiales_seleccionados
