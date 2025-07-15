@@ -23,19 +23,19 @@ for comp in ["Formación", "Operación"]:
             key=f"modalidad_{comp}"
         )
 
-# Paso 3: Organización y Municipio
+# Paso 3: Organización y municipio
 st.header("2️⃣ Datos generales del proyecto")
 org = st.text_input("¿A qué organización se dirige la propuesta?")
 municipio = st.text_input("¿En qué municipio se ejecutará el proyecto?")
 
-# Paso 4: Estrategias
+# Paso 4: Estrategias pedagógicas
 st.header("3️⃣ Estrategias pedagógicas")
 estrategias = st.multiselect(
     "¿Qué estrategias deseas aplicar?",
     ["Transición", "Primero", "Remediación"]
 )
 
-# Paso 5: Sedes
+# Paso 5: Sedes educativas
 st.header("4️⃣ Sedes educativas")
 num_sedes = st.number_input("¿Cuántas sedes serán impactadas?", min_value=1, step=1)
 sedes = []
@@ -43,26 +43,29 @@ for i in range(int(num_sedes)):
     nombre_sede = st.text_input(f"Nombre de la sede #{i+1}", key=f"sede_{i}")
     sedes.append(nombre_sede)
 
-# Paso 6: Población por sede y grado
+# Paso 6: Estudiantes y docentes
 st.header("5️⃣ Registro de estudiantes y docentes por sede")
+
 poblacion_por_sede = {}
 grados_por_estrategia = {
     "Transición": ["0°"],
     "Primero": ["1°"],
     "Remediación": ["2°", "3°", "4°", "5°"]
 }
+
 grados_requeridos = set()
 for est in estrategias:
     grados_requeridos.update(grados_por_estrategia[est])
 
 incluir_todos_docentes = st.radio(
-    "¿Deseas incluir a los docentes de todos los grados, independientemente de la estrategia seleccionada?",
+    "¿Deseas incluir a los docentes de todos los grados?",
     ["Sí", "No"]
 )
 
 for sede in sedes:
     st.subheader(f"Sede: {sede}")
     poblacion_por_sede[sede] = {}
+
     for grado in ["0°", "1°", "2°", "3°", "4°", "5°"]:
         incluir_grado = grado in grados_requeridos or incluir_todos_docentes == "Sí"
         if incluir_grado:
@@ -70,7 +73,7 @@ for sede in sedes:
             with col1:
                 est = st.number_input(f"👩‍🎓 Estudiantes en {grado} - {sede}", min_value=0, key=f"{sede}_{grado}_est")
             with col2:
-                doc = st.number_input(f"👨‍🏫 Docentes en {grado} - {sede} (dejar en 0 si no sabes)", min_value=0, key=f"{sede}_{grado}_doc")
+                doc = st.number_input(f"👨‍🏫 Docentes en {grado} - {sede}", min_value=0, key=f"{sede}_{grado}_doc")
             if doc == 0 and est > 0:
                 doc = round(est / 25)
                 st.markdown(f"🔎 *Docentes estimados: {doc}*")
@@ -78,25 +81,27 @@ for sede in sedes:
 
 st.session_state["poblacion_por_sede"] = poblacion_por_sede
 
-# Paso 7: Materiales
+# Paso 7: Selección de materiales
 st.header("6️⃣ Selección de materiales a incluir")
 materiales_por_estrategia = {
     "Transición": ["Cartilla docente transición", "Cartilla estudiante transición", "Cartilla de cuentos transición", "Kit aula transición"],
-    "Primero": [
-        "Guía docente tomo I", "Guía docente tomo II", "Guía estudiante unidad I",
-        "Guía estudiante unidad II", "Guía estudiante unidad III", "Guía estudiante unidad IV",
-        "Libro de cuentos", "Big Book", "Fichas", "Componedores aula", "Componedores individuales"
-    ],
+    "Primero": ["Guía docente tomo I", "Guía docente tomo II", "Guía estudiante unidad I", "Guía estudiante unidad II", "Guía estudiante unidad III", "Guía estudiante unidad IV", "Libro de cuentos", "Big Book", "Fichas", "Componedores aula", "Componedores individuales"],
     "Remediación": ["Guía docente remediación", "Guía estudiante remediación", "Cartilla cuentos remediación", "Fichas de apoyo remediación"]
 }
+
 materiales_seleccionados = {}
 for estrategia in estrategias:
     st.subheader(f"📦 Materiales para {estrategia}")
-    seleccion = st.multiselect(f"Selecciona los materiales que deseas incluir para {estrategia}", materiales_por_estrategia[estrategia], key=f"materiales_{estrategia}")
+    seleccion = st.multiselect(
+        f"Selecciona los materiales que deseas incluir para {estrategia}",
+        materiales_por_estrategia[estrategia],
+        key=f"materiales_{estrategia}"
+    )
     materiales_seleccionados[estrategia] = seleccion
+
 st.session_state["materiales_seleccionados"] = materiales_seleccionados
 
-# Paso 8: Refrigerios y logística
+# Paso 8: Logística de formación (si presencial)
 if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
     st.header("7️⃣ Logística de formación")
 
@@ -108,22 +113,22 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
         if actualizar_valor == "Sí":
             valor_actual_refrigerio = st.number_input("Nuevo valor del refrigerio (COP)", min_value=1000, step=500)
         num_sesiones = st.number_input("¿En cuántas sesiones se ofrecerán refrigerios?", min_value=1, step=1)
-        total_docentes = sum(info["docentes"] for sede in st.session_state["poblacion_por_sede"].values() for info in sede.values())
+        total_docentes = sum(info["docentes"] for sede in poblacion_por_sede.values() for info in sede.values())
         cantidad_refrigerios = int(round(total_docentes * 1.2 * num_sesiones))
-        st.success(f"🥤 Total de refrigerios estimados: {cantidad_refrigerios} unidades")
+        st.success(f"🥤 Total de refrigerios estimados: {cantidad_refrigerios}")
         st.session_state["refrigerios"] = {
             "valor_unitario": valor_actual_refrigerio,
             "num_sesiones": num_sesiones,
-            "total_docentes": total_docentes,
             "cantidad_refrigerios": cantidad_refrigerios
         }
 
-    num_viajes = st.number_input("¿Cuántos viajes estimas para desarrollar las formaciones?", min_value=1, value=3, step=1)
-    valor_hotel = st.number_input("¿Cuál es el valor por noche del hotel (COP)?", min_value=50000, value=150000, step=10000)
-    tipo_transporte = st.radio("¿Qué tipo de transporte usarán las personas encargadas del desplazamiento?", ["Terrestre", "Aéreo"])
+    num_viajes = st.number_input("¿Cuántos viajes estimas?", min_value=1, value=3)
+    valor_hotel = st.number_input("Valor por noche del hotel (COP)", min_value=50000, value=150000)
+    tipo_transporte = st.radio("¿Qué tipo de transporte se usará?", ["Terrestre", "Aéreo"])
     if tipo_transporte == "Aéreo":
-        st.markdown("✈️ Según precios promedio en aerolíneas nacionales, los costos suelen estar entre **COP $400.000 y $600.000** por trayecto.")
-    costo_transporte = st.number_input(f"¿Cuál es el costo promedio por visita ({tipo_transporte.lower()})?", min_value=100000, value=500000 if tipo_transporte == "Aéreo" else 150000, step=50000)
+        st.markdown("✈️ Costo estimado promedio: COP $400.000 a $600.000")
+    costo_transporte = st.number_input("Costo promedio por visita (COP)", min_value=100000, value=500000 if tipo_transporte == "Aéreo" else 150000)
+
     temas_formacion = [
         "Modelo pedagógico y didáctico",
         "Didáctica para transición",
@@ -132,46 +137,45 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
         "Uso de materiales en el aula",
         "Acompañamiento a docentes"
     ]
-    temas_seleccionados = st.multiselect("Selecciona los temas que deseas incluir en la formación", temas_formacion)
+    temas_seleccionados = st.multiselect("Selecciona los temas a trabajar", temas_formacion)
+
     st.session_state["formacion_logistica"] = {
         "num_viajes": num_viajes,
         "valor_hotel": valor_hotel,
-        "temas": temas_seleccionados,
         "transporte": tipo_transporte,
-        "costo_transporte": costo_transporte
+        "costo_transporte": costo_transporte,
+        "temas": temas_seleccionados
     }
 
-# Paso 9: Grupos
+# Paso 9: Cálculo de grupos
 if "Formación" in componentes:
-    st.header("9️⃣ Cálculo de grupos de formación")
-    total_docentes = sum(info["docentes"] for sede in st.session_state["poblacion_por_sede"].values() for info in sede.values())
-    if total_docentes == 0:
-        st.warning("⚠️ No se han registrado docentes.")
-    else:
-        grupos_formacion = (total_docentes + 39) // 40
-        st.success(f"👥 Total de docentes: {total_docentes}")
-        st.info(f"🧑‍🏫 Se requerirán **{grupos_formacion} grupo(s)** de formación (máx. 40 personas por grupo)")
-        st.session_state["grupos_formacion"] = {"total_docentes": total_docentes, "n_grupos": grupos_formacion}
+    st.header("8️⃣ Grupos de formación")
+    total_docentes = sum(info["docentes"] for sede in poblacion_por_sede.values() for info in sede.values())
+    n_grupos = (total_docentes + 39) // 40
+    st.success(f"👥 Total de docentes: {total_docentes}")
+    st.info(f"🔹 Se requerirán {n_grupos} grupo(s) (máx. 40 personas por grupo)")
+    st.session_state["grupos_formacion"] = {"total_docentes": total_docentes, "n_grupos": n_grupos}
 
 # Paso 10: Remediación
 if "Remediación" in estrategias:
-    st.header("🔟 Estrategia de Remediación")
-    porcentaje_remediacion = st.slider("¿Qué porcentaje estimado de estudiantes de 2° a 5° requieren remediación?", min_value=0, max_value=100, value=25, step=1)
-    total_estudiantes_remediacion = 0
-    for sede, grados in st.session_state["poblacion_por_sede"].items():
-        for grado in ["2°", "3°", "4°", "5°"]:
-            if grado in grados:
-                total_estudiantes_remediacion += grados[grado]["estudiantes"]
-    n_estudiantes_con_remediacion = int(round(total_estudiantes_remediacion * porcentaje_remediacion / 100))
-    st.success(f"👧👦 Se estima que {n_estudiantes_con_remediacion} estudiantes requieren remediación")
+    st.header("9️⃣ Estrategia de Remediación")
+    porcentaje_remediacion = st.slider("¿Qué porcentaje de estudiantes de 2° a 5° requieren remediación?", 0, 100, 25)
+    total_estudiantes_remediacion = sum(
+        info["estudiantes"]
+        for sede in poblacion_por_sede.values()
+        for grado, info in sede.items()
+        if grado in ["2°", "3°", "4°", "5°"]
+    )
+    estimado = int(round(total_estudiantes_remediacion * porcentaje_remediacion / 100))
+    st.success(f"👧🧒 Se estima que {estimado} estudiantes requieren remediación")
     st.session_state["remediacion"] = {
         "porcentaje": porcentaje_remediacion,
         "total_grados_2_5": total_estudiantes_remediacion,
-        "estimado_remediacion": n_estudiantes_con_remediacion
+        "estimado_remediacion": estimado
     }
 
 # Paso 11: Selección de pruebas (Monitoreo)
-if "Monitoreo y Evaluación" in componentes and "Transición" not in estrategias:
+if "Monitoreo y Evaluación" in componentes and any(e in estrategias for e in ["Primero", "Remediación"]):
     st.header("🔍 Módulo de Monitoreo y Evaluación")
     st.markdown("### 📁 Selecciona las pruebas que deseas aplicar:")
     pruebas_disponibles = ["EGRA entrada", "EGRA salida"]
@@ -181,3 +185,39 @@ if "Monitoreo y Evaluación" in componentes and "Transición" not in estrategias
         pruebas_disponibles.extend(["Semana 1", "Semana 7", "Semana 14"])
     pruebas_seleccionadas = st.multiselect("Pruebas disponibles según las estrategias seleccionadas:", pruebas_disponibles)
     st.session_state["pruebas_monitoreo"] = pruebas_seleccionadas
+
+# Paso 12: Aplicación de pruebas y productos
+if "pruebas_monitoreo" in st.session_state and st.session_state["pruebas_monitoreo"]:
+    st.header("📊 Aplicación de pruebas y productos por evaluación")
+
+    productos_estandar = [
+        "Informe de resultados",
+        "Presentación a actores",
+        "Informe técnico consolidado",
+        "Devolución a instituciones"
+    ]
+
+    configuracion_pruebas = {}
+
+    for prueba in st.session_state["pruebas_monitoreo"]:
+        st.subheader(f"🧪 {prueba}")
+
+        incluir_aplicacion = st.radio(
+            f"¿Deseas incluir la aplicación de la prueba '{prueba}'?",
+            ["Sí", "No"],
+            key=f"aplicacion_{prueba}"
+        )
+
+        productos_incluidos = st.multiselect(
+            f"Selecciona los productos que deseas incluir para '{prueba}':",
+            productos_estandar,
+            default=productos_estandar,
+            key=f"productos_{prueba}"
+        )
+
+        configuracion_pruebas[prueba] = {
+            "aplicacion": incluir_aplicacion == "Sí",
+            "productos": productos_incluidos
+        }
+
+    st.session_state["configuracion_pruebas"] = configuracion_pruebas
