@@ -250,3 +250,39 @@ if "Remediación" in estrategias:
         "total_grados_2_5": total_estudiantes_remediacion,
         "estimado_remediacion": n_estudiantes_con_remediacion
     }
+
+# Paso 12: Selección de pruebas de Monitoreo
+if "Monitoreo y Evaluación" in componentes and "Transición" not in estrategias:
+    st.header("🔍 Módulo de Monitoreo y Evaluación")
+
+    st.markdown("### 📑 Selecciona las pruebas que deseas aplicar:")
+
+    pruebas_disponibles = []
+
+    # EGRA siempre disponible para 1° a 5°
+    pruebas_disponibles.extend([
+        "EGRA entrada",
+        "EGRA salida"
+    ])
+
+    if "Primero" in estrategias:
+        pruebas_disponibles.extend([
+            "Semana 10",
+            "Semana 20",
+            "Semana 30",
+            "Semana 40"
+        ])
+
+    if "Remediación" in estrategias:
+        pruebas_disponibles.extend([
+            "Semana 1",
+            "Semana 7",
+            "Semana 14"
+        ])
+
+    pruebas_seleccionadas = st.multiselect(
+        "Pruebas disponibles según las estrategias seleccionadas:",
+        pruebas_disponibles
+    )
+
+    st.session_state["pruebas_monitoreo"] = pruebas_seleccionadas
