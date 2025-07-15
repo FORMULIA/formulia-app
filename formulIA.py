@@ -218,20 +218,44 @@ if "pruebas_monitoreo" in st.session_state and st.session_state["pruebas_monitor
 
     st.session_state["configuracion_pruebas"] = configuracion_pruebas
 
-import openpyxl
+from openpyxl import load_workbook
 from io import BytesIO
 
 st.markdown("---")
 st.subheader("📤 Exportar archivo Excel")
 
+# Función para cargar los temas de formación desde la hoja FORMACIÓN
+def obtener_temas_desde_excel(path):
+    try:
+        wb = load_workbook(path, data_only=True)
+        ws = wb["FORMACIÓN"]
+        return [ws[f"B{row}"].value for row in range(3, 10)]
+    except Exception as e:
+        st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
+        return []
+
+# Cargar temas al momento de llegar a esta sección
+temas_formacion = obtener_temas_desde_excel("estructura de costos FormulIA.xlsx")
+
+# Mostrar multiselección de temas si se está ejecutando formación presencial
+if "Formación" in componentes:
+    st.subheader("📚 Temas de formación")
+    temas_seleccionados = st.multiselect(
+        "Selecciona los temas a trabajar (cargados desde el Excel)",
+        temas_formacion
+    )
+    if "formacion_logistica" not in st.session_state:
+        st.session_state["formacion_logistica"] = {}
+    st.session_state["formacion_logistica"]["temas"] = temas_seleccionados
+
+# Botón para generar archivo
 if st.button("📥 Generar archivo Excel con datos"):
-    excel_path = "estructura de costos FormulIA.xlsx"  # Asegúrate que esté en el repositorio raíz
+    excel_path = "estructura de costos FormulIA.xlsx"
 
     try:
-        wb = openpyxl.load_workbook(excel_path)
+        wb = load_workbook(excel_path)
         ws = wb["FORMACIÓN"]
 
-        # Datos principales desde session_state
         grupos = st.session_state["grupos_formacion"]["n_grupos"]
         viajes = st.session_state["formacion_logistica"]["num_viajes"]
         horas_viaje = viajes * 3
@@ -246,24 +270,23 @@ if st.button("📥 Generar archivo Excel con datos"):
         else:
             costo_refrigerio_total = 0
 
-        # Recorremos filas 3 a 9 (temas)
+        # Actualizar filas 3 a 9 (por tema)
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos         # Columna C - horas efectivas
-                ws[f"F{row}"] = horas_viaje               # Columna F - horas de viaje
+                    ws[f"C{row}"] = horas * grupos
+                ws[f"F{row}"] = horas_viaje
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
 
-        # Actualizar celdas únicas
+        # Celdas únicas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["C24"] = costo_refrigerio_total
 
-        # Guardar y ofrecer descarga
         output = BytesIO()
         wb.save(output)
         output.seek(0)
