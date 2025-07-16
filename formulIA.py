@@ -283,6 +283,19 @@ from io import BytesIO
 st.markdown("---")
 st.subheader("📤 Exportar archivo Excel")
 
+# Pregunta AIU antes del botón de exportación
+st.markdown("---")
+st.subheader("⚙️ Porcentaje de AIU")
+aiu = st.number_input(
+    "Indica el % de AIU (Administración, Imprevistos y Utilidad):",
+    min_value=0,
+    max_value=100,
+    value=35,
+    step=1
+)
+st.session_state["aiu_porcentaje"] = aiu
+
+# Botón para exportar
 if st.button("📥 Generar archivo Excel con datos"):
     excel_path = "estructura de costos formuLIA.xlsx"
 
@@ -290,7 +303,7 @@ if st.button("📥 Generar archivo Excel con datos"):
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
 
-        # Recuperar datos desde session_state
+        # Recuperar datos
         formacion = st.session_state.get("formacion_logistica", {})
         grupos = st.session_state.get("grupos_formacion", {}).get("n_grupos", 1)
         num_viajes = formacion.get("num_viajes", 3)
@@ -313,10 +326,7 @@ if st.button("📥 Generar archivo Excel con datos"):
 
         aiu = st.session_state.get("aiu_porcentaje", 35)
 
-        # -----------------------------
-        # ACTUALIZAR CELDAS DEL EXCEL
-        # -----------------------------
-
+        # ACTUALIZAR HOJA DE FORMACIÓN
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
@@ -325,12 +335,14 @@ if st.button("📥 Generar archivo Excel con datos"):
                     ws[f"C{row}"] = horas * grupos
                 ws[f"F{row}"] = horas_viaje
                 ws[f"J{row}"] = aiu / 100
+                # No tocamos O si está seleccionado
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
                 ws[f"J{row}"] = aiu / 100
+                ws[f"O{row}"] = 0  # ← limpiar columna O si el tema no fue seleccionado
 
-        # Celdas fijas
+        # Otras celdas clave
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["D16"] = num_viajes
@@ -343,7 +355,7 @@ if st.button("📥 Generar archivo Excel con datos"):
         ws["E18"] = aiu / 100
         ws["C27"] = aiu / 100
 
-        # Guardar y ofrecer descarga
+        # Guardar y descargar
         output = BytesIO()
         wb.save(output)
         output.seek(0)
