@@ -306,3 +306,7 @@ if st.button("🔍 Ver hojas del Excel"):
         st.write("📑 Hojas encontradas en el archivo Excel:", hojas)
     except Exception as e:
         st.error(f"❌ Error al cargar el archivo: {e}")
+
+if st.button("🔍 Mostrar hojas disponibles"):
+    wb = load_workbook("estructura de costos formuLIA.xlsx")
+    st.write("📑 Hojas en el archivo:", wb.sheetnames)
