@@ -224,20 +224,20 @@ from io import BytesIO
 st.markdown("---")
 st.subheader("📤 Exportar archivo Excel")
 
-# Función: Obtener temas de formación desde el Excel
+# Función: obtener temas desde la hoja con espacio inicial
 def obtener_temas_desde_excel(path):
     try:
         wb = load_workbook(path, data_only=True)
-        ws = wb["FORMACIÓN"]  # Asegúrate que esta hoja se llame exactamente así
+        ws = wb[" FORMACIÓN"]
         return [ws[f"B{row}"].value for row in range(3, 10)]
     except Exception as e:
         st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
         return []
 
-# Cargar los temas reales
+# Cargar temas
 temas_formacion = obtener_temas_desde_excel("estructura de costos formuLIA.xlsx")
 
-# Mostrar selección de temas solo si está Formación activa
+# Mostrar selección solo si se seleccionó el componente Formación
 if "Formación" in componentes:
     st.subheader("📚 Temas de formación (extraídos del Excel)")
     temas_seleccionados = st.multiselect(
@@ -248,13 +248,13 @@ if "Formación" in componentes:
         st.session_state["formacion_logistica"] = {}
     st.session_state["formacion_logistica"]["temas"] = temas_seleccionados
 
-# BOTÓN PARA GENERAR EXCEL
+# Botón para generar Excel actualizado
 if st.button("📥 Generar archivo Excel con datos"):
     excel_path = "estructura de costos formuLIA.xlsx"
 
     try:
         wb = load_workbook(excel_path)
-        ws = wb["FORMACIÓN"]
+        ws = wb[" FORMACIÓN"]
 
         grupos = st.session_state["grupos_formacion"]["n_grupos"]
         viajes = st.session_state["formacion_logistica"]["num_viajes"]
@@ -267,19 +267,18 @@ if st.button("📥 Generar archivo Excel con datos"):
         refrigerios = st.session_state.get("refrigerios", None)
         costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"] if refrigerios else 0
 
-        # Recorre filas 3 a 9 (una por cada tema)
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos  # Horas efectivas
-                ws[f"F{row}"] = horas_viaje        # N° horas de viaje
+                    ws[f"C{row}"] = horas * grupos
+                ws[f"F{row}"] = horas_viaje
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
 
-        # Insertar valores en celdas únicas
+        # Celdas únicas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["C24"] = costo_refrigerio_total
@@ -298,15 +297,3 @@ if st.button("📥 Generar archivo Excel con datos"):
 
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo Excel: {e}")
-
-if st.button("🔍 Ver hojas del Excel"):
-    try:
-        wb = load_workbook("estructura de costos formuLIA.xlsx")
-        hojas = wb.sheetnames
-        st.write("📑 Hojas encontradas en el archivo Excel:", hojas)
-    except Exception as e:
-        st.error(f"❌ Error al cargar el archivo: {e}")
-
-if st.button("🔍 Mostrar hojas disponibles"):
-    wb = load_workbook("estructura de costos formuLIA.xlsx")
-    st.write("📑 Hojas en el archivo:", wb.sheetnames)
