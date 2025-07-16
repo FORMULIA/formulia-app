@@ -101,45 +101,93 @@ st.session_state["materiales_seleccionados"] = materiales_seleccionados
 
 # Paso 8: Logística (si presencial)
 if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
-    st.header("7️⃣ Logística de formación")
+    st.header("7️⃣ Logística de formación (Presencial)")
 
+    # Inicializar diccionario si no existe
+    if "formacion_logistica" not in st.session_state:
+        st.session_state["formacion_logistica"] = {}
+
+    # Número de viajes
+    num_viajes = st.number_input(
+        "¿Cuántos viajes estimas para desarrollar las formaciones?",
+        min_value=1,
+        max_value=10,
+        value=3,
+        step=1
+    )
+    st.session_state["formacion_logistica"]["num_viajes"] = num_viajes
+
+    # Tipo de transporte
     tipo_transporte = st.radio("¿Qué tipo de transporte se usará?", ["Terrestre", "Aéreo"])
-    if tipo_transporte == "Aéreo":
-        st.markdown("✈️ Costo estimado promedio: COP $400.000 a $600.000")
+    st.session_state["formacion_logistica"]["tipo_transporte"] = tipo_transporte
 
-    costo_transporte = st.number_input("Costo promedio por visita (COP)", min_value=100000, value=500000 if tipo_transporte == "Aéreo" else 150000, step=50000)
+    # Costo promedio por visita
+    costo_transporte = st.number_input(
+        "Costo promedio por visita (COP)",
+        min_value=100000,
+        value=500000 if tipo_transporte == "Aéreo" else 150000,
+        step=50000
+    )
+    st.session_state["formacion_logistica"]["costo_transporte"] = costo_transporte
 
+    # Costo promedio de hotel
+    valor_hotel = st.number_input(
+        "Costo promedio por noche de hotel (COP)",
+        min_value=50000,
+        value=180000,
+        step=10000
+    )
+    st.session_state["formacion_logistica"]["valor_hotel"] = valor_hotel
+
+    # Carga dinámica de temas desde Excel
+    try:
+        wb_temas = load_workbook("estructura de costos formuLIA.xlsx", data_only=True)
+        ws_temas = wb_temas[" FORMACIÓN"]
+        temas_formacion = [ws_temas[f"B{row}"].value for row in range(3, 10)]
+    except Exception as e:
+        st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
+        temas_formacion = []
+
+    # Selección de temas a trabajar
+    temas_seleccionados = st.multiselect(
+        "📚 Selecciona los temas que deseas trabajar:",
+        temas_formacion
+    )
+    st.session_state["formacion_logistica"]["temas"] = temas_seleccionados
+
+    # BLOQUE DE REFRIGERIOS
     incluir_refrigerios = st.radio("¿Deseas incluir refrigerios?", ["Sí", "No"])
     if incluir_refrigerios == "Sí":
-        valor_actual_refrigerio = 8000
-        st.markdown(f"💰 Valor actual del refrigerio: **COP ${valor_actual_refrigerio:,.0f}**")
-        actualizar_valor = st.radio("¿Deseas actualizar este valor?", ["No", "Sí"])
+        try:
+            wb_temp = load_workbook("estructura de costos formuLIA.xlsx", data_only=True)
+            ws_temp = wb_temp[" FORMACIÓN"]
+            valor_unitario = ws_temp["C24"].value or 8000
+        except:
+            valor_unitario = 8000
+
+        st.markdown(f"💰 Valor actual del refrigerio (desde Excel): **${int(valor_unitario):,} COP**")
+
+        actualizar_valor = st.radio("¿Deseas actualizar el valor del refrigerio?", ["No", "Sí"])
         if actualizar_valor == "Sí":
-            valor_actual_refrigerio = st.number_input("Nuevo valor del refrigerio (COP)", min_value=1000, step=500)
+            valor_unitario = st.number_input(
+                "Nuevo valor del refrigerio (COP)",
+                min_value=1000,
+                value=int(valor_unitario),
+                step=500
+            )
+
         num_sesiones = st.number_input("¿En cuántas sesiones se ofrecerán refrigerios?", min_value=1, step=1)
-        total_docentes = sum(info["docentes"] for sede in poblacion_por_sede.values() for info in sede.values())
+
+        total_docentes = sum(info["docentes"] for sede in st.session_state["poblacion_por_sede"].values() for info in sede.values())
         cantidad_refrigerios = int(round(total_docentes * 1.2 * num_sesiones))
-        st.success(f"🥤 Total de refrigerios estimados: {cantidad_refrigerios}")
+
+        st.success(f"🥤 Total estimado de refrigerios: {cantidad_refrigerios}")
+
         st.session_state["refrigerios"] = {
-            "valor_unitario": valor_actual_refrigerio,
+            "valor_unitario": valor_unitario,
             "num_sesiones": num_sesiones,
             "cantidad_refrigerios": cantidad_refrigerios
         }
-
-    temas_formacion = [
-        "Modelo pedagógico y didáctico",
-        "Didáctica para transición",
-        "Didáctica para primero",
-        "Evaluación formativa",
-        "Uso de materiales en el aula",
-        "Acompañamiento a docentes"
-    ]
-    temas_seleccionados = st.multiselect("Selecciona los temas a trabajar", temas_formacion)
-    st.session_state["formacion_logistica"] = {
-        "transporte": tipo_transporte,
-        "costo_transporte": costo_transporte,
-        "temas": temas_seleccionados
-    }
 # Paso 9: Grupos de formación
 if "Formación" in componentes:
     st.header("8️⃣ Grupos de formación")
@@ -224,31 +272,6 @@ from io import BytesIO
 st.markdown("---")
 st.subheader("📤 Exportar archivo Excel")
 
-# Función: obtener temas desde la hoja con espacio inicial
-def obtener_temas_desde_excel(path):
-    try:
-        wb = load_workbook(path, data_only=True)
-        ws = wb[" FORMACIÓN"]
-        return [ws[f"B{row}"].value for row in range(3, 10)]
-    except Exception as e:
-        st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
-        return []
-
-# Cargar temas
-temas_formacion = obtener_temas_desde_excel("estructura de costos formuLIA.xlsx")
-
-# Mostrar selección solo si se seleccionó el componente Formación
-if "Formación" in componentes:
-    st.subheader("📚 Temas de formación (extraídos del Excel)")
-    temas_seleccionados = st.multiselect(
-        "Selecciona los temas que deseas trabajar:",
-        temas_formacion
-    )
-    if "formacion_logistica" not in st.session_state:
-        st.session_state["formacion_logistica"] = {}
-    st.session_state["formacion_logistica"]["temas"] = temas_seleccionados
-
-# Botón para generar Excel actualizado
 if st.button("📥 Generar archivo Excel con datos"):
     excel_path = "estructura de costos formuLIA.xlsx"
 
@@ -256,33 +279,38 @@ if st.button("📥 Generar archivo Excel con datos"):
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
 
-        grupos = st.session_state["grupos_formacion"]["n_grupos"]
-        viajes = st.session_state["formacion_logistica"]["num_viajes"]
+        # Obtener datos desde session_state
+        formacion = st.session_state.get("formacion_logistica", {})
+        grupos = st.session_state.get("grupos_formacion", {}).get("n_grupos", 1)
+        viajes = formacion.get("num_viajes", 3)
         horas_viaje = viajes * 3
-        temas = st.session_state["formacion_logistica"]["temas"]
+        temas = formacion.get("temas", [])
 
-        costo_transporte = st.session_state["formacion_logistica"]["costo_transporte"]
-        valor_hotel = st.session_state["formacion_logistica"]["valor_hotel"]
+        costo_transporte = formacion.get("costo_transporte", 0)
+        valor_hotel = formacion.get("valor_hotel", 0)
 
         refrigerios = st.session_state.get("refrigerios", None)
         costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"] if refrigerios else 0
+        valor_unitario_refrigerio = refrigerios["valor_unitario"] if refrigerios else 8000
 
+        # Recorremos las filas 3 a 9
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos
-                ws[f"F{row}"] = horas_viaje
+                    ws[f"C{row}"] = horas * grupos  # C: Horas efectivas por grupos
+                ws[f"F{row}"] = horas_viaje         # F: Horas de viaje
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
 
-        # Celdas únicas
+        # Actualizar celdas fijas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
-        ws["C24"] = costo_refrigerio_total
+        ws["C24"] = valor_unitario_refrigerio  # ← ¡Ahora se actualiza con lo ingresado!
 
+        # Guardar y ofrecer descarga
         output = BytesIO()
         wb.save(output)
         output.seek(0)
