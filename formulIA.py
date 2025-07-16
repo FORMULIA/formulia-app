@@ -298,3 +298,11 @@ if st.button("📥 Generar archivo Excel con datos"):
 
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo Excel: {e}")
+
+if st.button("🔍 Ver hojas del Excel"):
+    try:
+        wb = load_workbook("estructura de costos formuLIA.xlsx")
+        hojas = wb.sheetnames
+        st.write("📑 Hojas encontradas en el archivo Excel:", hojas)
+    except Exception as e:
+        st.error(f"❌ Error al cargar el archivo: {e}")
