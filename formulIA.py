@@ -1,4 +1,5 @@
 import streamlit as st
+from openpyxl import load_workbook
 
 st.set_page_config(page_title="FormulIA - Generador de propuestas", layout="centered")
 
