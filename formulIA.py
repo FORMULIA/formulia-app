@@ -104,11 +104,11 @@ st.session_state["materiales_seleccionados"] = materiales_seleccionados
 if "Formación" in componentes and modalidades.get("Formación") == "Presencial":
     st.header("7️⃣ Logística de formación (Presencial)")
 
-    # Inicializar diccionario si no existe
+    # Inicializa diccionario si no existe
     if "formacion_logistica" not in st.session_state:
         st.session_state["formacion_logistica"] = {}
 
-    # Número de viajes
+    # Número de viajes estimados
     num_viajes = st.number_input(
         "¿Cuántos viajes estimas para desarrollar las formaciones?",
         min_value=1,
@@ -118,11 +118,21 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
     )
     st.session_state["formacion_logistica"]["num_viajes"] = num_viajes
 
+    # Horas estimadas de viaje ida y vuelta
+    horas_viaje = st.number_input(
+        "¿Cuántas horas estimas de desplazamiento ida y vuelta?",
+        min_value=1,
+        max_value=24,
+        value=4,
+        step=1
+    )
+    st.session_state["formacion_logistica"]["horas_viaje"] = horas_viaje
+
     # Tipo de transporte
     tipo_transporte = st.radio("¿Qué tipo de transporte se usará?", ["Terrestre", "Aéreo"])
     st.session_state["formacion_logistica"]["tipo_transporte"] = tipo_transporte
 
-    # Costo promedio por visita
+    # Costo promedio de transporte por visita
     costo_transporte = st.number_input(
         "Costo promedio por visita (COP)",
         min_value=100000,
@@ -131,7 +141,7 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
     )
     st.session_state["formacion_logistica"]["costo_transporte"] = costo_transporte
 
-    # Costo promedio de hotel
+    # Costo promedio de hotel por noche
     valor_hotel = st.number_input(
         "Costo promedio por noche de hotel (COP)",
         min_value=50000,
@@ -140,16 +150,15 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
     )
     st.session_state["formacion_logistica"]["valor_hotel"] = valor_hotel
 
-    # Carga dinámica de temas desde Excel
+    # Cargar temas desde Excel (B3:B9)
     try:
         wb_temas = load_workbook("estructura de costos formuLIA.xlsx", data_only=True)
         ws_temas = wb_temas[" FORMACIÓN"]
-        temas_formacion = [ws_temas[f"B{row}"].value for row in range(3, 10)]
+        temas_formacion = [ws_temas[f"B{row}"].value for row in range(3, 10) if ws_temas[f"B{row}"].value]
     except Exception as e:
         st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
         temas_formacion = []
 
-    # Selección de temas a trabajar
     temas_seleccionados = st.multiselect(
         "📚 Selecciona los temas que deseas trabajar:",
         temas_formacion
@@ -179,6 +188,7 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
 
         num_sesiones = st.number_input("¿En cuántas sesiones se ofrecerán refrigerios?", min_value=1, step=1)
 
+        # Total docentes desde el estado (sumando todas las sedes)
         total_docentes = sum(info["docentes"] for sede in st.session_state["poblacion_por_sede"].values() for info in sede.values())
         cantidad_refrigerios = int(round(total_docentes * 1.2 * num_sesiones))
 
