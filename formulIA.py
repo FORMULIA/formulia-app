@@ -224,33 +224,33 @@ from io import BytesIO
 st.markdown("---")
 st.subheader("📤 Exportar archivo Excel")
 
-# Función para cargar los temas de formación desde la hoja FORMACIÓN
+# Función: Obtener temas de formación desde el Excel
 def obtener_temas_desde_excel(path):
     try:
         wb = load_workbook(path, data_only=True)
-        ws = wb["FORMACIÓN"]
+        ws = wb["FORMACIÓN"]  # Asegúrate que esta hoja se llame exactamente así
         return [ws[f"B{row}"].value for row in range(3, 10)]
     except Exception as e:
         st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
         return []
 
-# Cargar temas al momento de llegar a esta sección
-temas_formacion = obtener_temas_desde_excel("estructura de costos FormulIA.xlsx")
+# Cargar los temas reales
+temas_formacion = obtener_temas_desde_excel("estructura de costos formuLIA.xlsx")
 
-# Mostrar multiselección de temas si se está ejecutando formación presencial
+# Mostrar selección de temas solo si está Formación activa
 if "Formación" in componentes:
-    st.subheader("📚 Temas de formación")
+    st.subheader("📚 Temas de formación (extraídos del Excel)")
     temas_seleccionados = st.multiselect(
-        "Selecciona los temas a trabajar (cargados desde el Excel)",
+        "Selecciona los temas que deseas trabajar:",
         temas_formacion
     )
     if "formacion_logistica" not in st.session_state:
         st.session_state["formacion_logistica"] = {}
     st.session_state["formacion_logistica"]["temas"] = temas_seleccionados
 
-# Botón para generar archivo
+# BOTÓN PARA GENERAR EXCEL
 if st.button("📥 Generar archivo Excel con datos"):
-    excel_path = "estructura de costos FormulIA.xlsx"
+    excel_path = "estructura de costos formuLIA.xlsx"
 
     try:
         wb = load_workbook(excel_path)
@@ -265,24 +265,21 @@ if st.button("📥 Generar archivo Excel con datos"):
         valor_hotel = st.session_state["formacion_logistica"]["valor_hotel"]
 
         refrigerios = st.session_state.get("refrigerios", None)
-        if refrigerios:
-            costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"]
-        else:
-            costo_refrigerio_total = 0
+        costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"] if refrigerios else 0
 
-        # Actualizar filas 3 a 9 (por tema)
+        # Recorre filas 3 a 9 (una por cada tema)
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos
-                ws[f"F{row}"] = horas_viaje
+                    ws[f"C{row}"] = horas * grupos  # Horas efectivas
+                ws[f"F{row}"] = horas_viaje        # N° horas de viaje
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
 
-        # Celdas únicas
+        # Insertar valores en celdas únicas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["C24"] = costo_refrigerio_total
