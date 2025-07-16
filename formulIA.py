@@ -344,7 +344,7 @@ if st.button("📥 Generar archivo Excel con datos"):
         aiu_absoluto = sum([
             ws["K10"].value or 0,
             ws["E19"].value or 0,
-            ws["E28"].value or 0
+            ws["C28"].value or 0
         ])
 
         output = BytesIO()
