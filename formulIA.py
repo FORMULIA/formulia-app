@@ -290,6 +290,7 @@ if st.button("📥 Generar archivo Excel con datos"):
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
 
+        # Variables desde session_state
         formacion = st.session_state.get("formacion_logistica", {})
         grupos = st.session_state.get("grupos_formacion", {}).get("n_grupos", 1)
         num_viajes = formacion.get("num_viajes", 3)
@@ -308,24 +309,24 @@ if st.button("📥 Generar archivo Excel con datos"):
 
         aiu = st.session_state.get("aiu_porcentaje", 35)
 
-        # -------------------------------
-        # ACTUALIZAR DATOS EN EL EXCEL
-        # -------------------------------
+        # -----------------------------------
+        # ACTUALIZACIÓN DE CELDAS DEL EXCEL
+        # -----------------------------------
 
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos
-                ws[f"F{row}"] = horas_viaje
-                ws[f"J{row}"] = aiu / 100  # AIU en porcentaje como decimal
+                    ws[f"C{row}"] = horas * grupos  # Horas efectivas
+                ws[f"F{row}"] = horas_viaje       # Horas de viaje
+                ws[f"J{row}"] = aiu / 100          # AIU como decimal
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
                 ws[f"J{row}"] = aiu / 100
 
-        # Celdas fijas
+        # Celdas únicas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["D16"] = num_viajes
@@ -338,15 +339,23 @@ if st.button("📥 Generar archivo Excel con datos"):
         ws["E18"] = aiu / 100
         ws["C27"] = aiu / 100
 
-        # RESUMEN FINAL - Costo total, unitario y AIU absoluto
-        costo_total = ws["E32"].value or 0
-        valor_unitario = ws["E34"].value or 0
-        aiu_absoluto = sum([
-            ws["K10"].value or 0,
-            ws["E19"].value or 0,
-            ws["C28"].value or 0
-        ])
+        # Función segura para convertir celdas a número
+        def safe_float(val):
+            try:
+                return float(val)
+            except:
+                return 0
 
+        # RESUMEN FINAL
+        costo_total = safe_float(ws["E32"].value)
+        valor_unitario = safe_float(ws["E34"].value)
+        aiu_absoluto = (
+            safe_float(ws["K10"].value) +
+            safe_float(ws["E19"].value) +
+            safe_float(ws["C28"].value)
+        )
+
+        # Guardar y ofrecer descarga
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -359,6 +368,7 @@ if st.button("📥 Generar archivo Excel con datos"):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+        # Mostrar resumen en pantalla
         st.markdown("---")
         st.subheader("📘 Resumen de la propuesta (solo formación)")
         st.markdown(f"💰 **Costo total de formación:** ${int(costo_total):,} COP")
