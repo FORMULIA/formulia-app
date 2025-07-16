@@ -290,38 +290,63 @@ if st.button("📥 Generar archivo Excel con datos"):
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
 
-        # Obtener datos desde session_state
         formacion = st.session_state.get("formacion_logistica", {})
         grupos = st.session_state.get("grupos_formacion", {}).get("n_grupos", 1)
-        viajes = formacion.get("num_viajes", 3)
-        horas_viaje = viajes * 3
+        num_viajes = formacion.get("num_viajes", 3)
+        horas_viaje = formacion.get("horas_viaje", 0)
         temas = formacion.get("temas", [])
 
         costo_transporte = formacion.get("costo_transporte", 0)
         valor_hotel = formacion.get("valor_hotel", 0)
 
         refrigerios = st.session_state.get("refrigerios", None)
-        costo_refrigerio_total = refrigerios["valor_unitario"] * refrigerios["cantidad_refrigerios"] if refrigerios else 0
         valor_unitario_refrigerio = refrigerios["valor_unitario"] if refrigerios else 8000
+        cantidad_refrigerios = refrigerios["cantidad_refrigerios"] if refrigerios else 0
+        num_sesiones = refrigerios["num_sesiones"] if refrigerios else 0
 
-        # Recorremos las filas 3 a 9
+        total_docentes = sum(info["docentes"] for sede in st.session_state["poblacion_por_sede"].values() for info in sede.values())
+
+        aiu = st.session_state.get("aiu_porcentaje", 35)
+
+        # -------------------------------
+        # ACTUALIZAR DATOS EN EL EXCEL
+        # -------------------------------
+
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
                 horas = ws[f"C{row}"].value
                 if isinstance(horas, (int, float)):
-                    ws[f"C{row}"] = horas * grupos  # C: Horas efectivas por grupos
-                ws[f"F{row}"] = horas_viaje         # F: Horas de viaje
+                    ws[f"C{row}"] = horas * grupos
+                ws[f"F{row}"] = horas_viaje
+                ws[f"J{row}"] = aiu / 100  # AIU en porcentaje como decimal
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
+                ws[f"J{row}"] = aiu / 100
 
-        # Actualizar celdas fijas
+        # Celdas fijas
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
-        ws["C24"] = valor_unitario_refrigerio  # ← ¡Ahora se actualiza con lo ingresado!
+        ws["D16"] = num_viajes
+        ws["D14"] = num_viajes * 3
+        ws["D15"] = num_viajes * 3
+        ws["C24"] = valor_unitario_refrigerio
+        ws["C23"] = int(round(total_docentes * 1.2))
+        ws["C25"] = num_sesiones
+        ws["E33"] = total_docentes
+        ws["E18"] = aiu / 100
+        ws["C27"] = aiu / 100
 
-        # Guardar y ofrecer descarga
+        # RESUMEN FINAL - Costo total, unitario y AIU absoluto
+        costo_total = ws["E32"].value or 0
+        valor_unitario = ws["E34"].value or 0
+        aiu_absoluto = sum([
+            ws["K10"].value or 0,
+            ws["E19"].value or 0,
+            ws["E28"].value or 0
+        ])
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -333,6 +358,12 @@ if st.button("📥 Generar archivo Excel con datos"):
             file_name="formulIA_actualizado.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        st.markdown("---")
+        st.subheader("📘 Resumen de la propuesta (solo formación)")
+        st.markdown(f"💰 **Costo total de formación:** ${int(costo_total):,} COP")
+        st.markdown(f"👩‍🏫 **Costo unitario por docente:** ${int(valor_unitario):,} COP")
+        st.markdown(f"📦 **AIU absoluto calculado:** ${int(aiu_absoluto):,} COP")
 
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo Excel: {e}")
