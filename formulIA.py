@@ -432,3 +432,12 @@ for fila in tabla_presupuesto:
 # === Paso 4: Guardar el nuevo documento ===
 doc.save(ruta_salida)
 print(f"Documento guardado como {ruta_salida}")
+
+with open("Propuesta_Formacion.docx", "rb") as f:
+    st.download_button(
+        label="📄 Descargar propuesta Word",
+        data=f,
+        file_name="Propuesta_Formacion.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
