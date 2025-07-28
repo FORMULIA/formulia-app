@@ -54,11 +54,24 @@ estrategias = st.multiselect(
 
 # Paso 5: Sedes educativas
 st.header("4️⃣ Sedes educativas")
-num_sedes = st.number_input("¿Cuántas sedes serán impactadas?", min_value=1, step=1)
-sedes = []
+
+# Guardar número de sedes
+num_sedes = st.number_input(
+    "¿Cuántas sedes serán impactadas?",
+    min_value=1,
+    value=st.session_state.get("num_sedes", 1),
+    step=1
+)
+st.session_state["num_sedes"] = num_sedes
+
+# Capturar nombres de sedes y guardarlos
+sedes = st.session_state.get("sedes", [""] * int(num_sedes))
+
 for i in range(int(num_sedes)):
-    nombre_sede = st.text_input(f"Nombre de la sede #{i+1}", key=f"sede_{i}")
-    sedes.append(nombre_sede)
+    sede = st.text_input(f"Nombre de la sede #{i+1}", value=sedes[i], key=f"sede_{i}")
+    sedes[i] = sede
+
+st.session_state["sedes"] = sedes
 
 # Paso 6: Estudiantes y docentes
 st.header("5️⃣ Registro de estudiantes y docentes por sede")
@@ -388,110 +401,52 @@ if st.button("📥 Generar archivo Excel con datos"):
         st.error(f"❌ Error al procesar el archivo Excel: {e}")
 
 from docx import Document
-from openpyxl import load_workbook
 import streamlit as st
-import os
 
-# === 1. Cargar variables desde session_state con valores por defecto ===
-nombre_organizacion = st.session_state.get("organizacion", "Organización")
-municipio = st.session_state.get("municipio", "Municipio")
-temas_seleccionados = st.session_state.get("temas_formacion", [])
-numero_docentes = st.session_state.get("num_docentes", 0)
-componentes = st.session_state.get("componentes", [])
-
-# === 2. Rutas de archivos ===
+# Asegurar que el archivo base existe
 ruta_word = "Ejemplo propuesta.docx"
-ruta_excel = "estructura de costos formuLIA.xlsx"
-ruta_salida = "Propuesta_Formacion.docx"
+ruta_salida = "Propuesta_FormulIA.docx"
 
-# === 3. Mostrar valores capturados para verificación (opcional) ===
-st.write("📌 Verificando datos:")
-st.write("Organización:", nombre_organizacion)
-st.write("Municipio:", municipio)
-st.write("Temas seleccionados:", temas_seleccionados)
-st.write("Número de docentes:", numero_docentes)
-st.write("Componentes seleccionados:", componentes)
-
-# === 4. Cargar documento Word y reemplazar texto base ===
+# Cargar el Word base
 doc = Document(ruta_word)
+
+# === EXTRAER DATOS DEL SESSION_STATE ===
+nombre_organizacion = st.session_state.get("organizacion", "ORGANIZACIÓN")
+municipio = st.session_state.get("municipio", "MUNICIPIO")
+num_sedes = st.session_state.get("num_sedes", 0)
+lista_sedes = st.session_state.get("sedes", [])
+
+# Construir texto de sedes
+sedes_como_texto = ", ".join([f"Institución Educativa {s}" for s in lista_sedes if s])
+
+# === REEMPLAZAR TEXTOS EN EL WORD ===
 for p in doc.paragraphs:
+    # Reemplazar organización
     if "Fundación Santo Domingo" in p.text:
         p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
+
+    # Reemplazar municipio
     if "Barú" in p.text:
         p.text = p.text.replace("Barú", municipio)
 
-# === 5. Cargar tabla del Excel para formación ===
-tabla_presupuesto = []
-try:
-    wb = load_workbook(ruta_excel, data_only=True)
-    resumen = wb["RESUMEN"]
-    for fila in range(53, 61):  # filas 53 a 60
-        tema = resumen[f"A{fila}"].value
-        if tema and tema.strip() in temas_seleccionados:
-            costo_unitario = resumen[f"D{fila}"].value or 0
-            subtotal = costo_unitario * numero_docentes
-            tabla_presupuesto.append([
-                tema.strip(),
-                f"${costo_unitario:,.0f}",
-                numero_docentes,
-                f"${subtotal:,.0f}"
-            ])
-except Exception as e:
-    st.error(f"❌ Error cargando Excel: {e}")
+    # Reemplazar número de sedes (en Resumen, Objetivo, etc.)
+    if "3 Instituciones Educativas" in p.text:
+        p.text = p.text.replace("3 Instituciones Educativas", f"{num_sedes} Instituciones Educativas")
 
-# === 6. Personalizar contenido solo si solo se seleccionó Formación ===
-if componentes == ["Formación"]:
-    conservar = False
-    nueva_parte = []
-    for p in doc.paragraphs:
-        texto = p.text.strip()
+    # Reemplazar nombres de sedes (en Población focalizada)
+    if "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca" in p.text:
+        p.text = p.text.replace(
+            "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca",
+            sedes_como_texto
+        )
 
-        if texto.startswith("Resumen") or texto.startswith("Introducción") or texto.startswith("Objetivo de la propuesta") or texto.startswith("Población focalizada"):
-            conservar = True
-        elif texto.startswith("Acciones para desarrollar"):
-            conservar = True
-        elif texto.startswith("2.") or texto.startswith("3.") or texto.startswith("4."):
-            conservar = False
-        elif texto.startswith("Inversión"):
-            conservar = True
-
-        if conservar:
-            nueva_parte.append(p)
-
-    for _ in range(len(doc.paragraphs)):
-        p = doc.paragraphs[0]
-        p.clear()
-    for p in nueva_parte:
-        doc.add_paragraph(p.text, style=p.style)
-
-    # Insertar Numeral 1 con temas seleccionados
-    doc.add_paragraph("\n1. FORMACIÓN", style="Heading 3")
-    for tema in temas_seleccionados:
-        doc.add_paragraph(f"• {tema}", style="List Bullet")
-
-    # Insertar tabla de inversión
-    doc.add_paragraph("\nInversión", style="Heading 2")
-    tabla = doc.add_table(rows=1, cols=4)
-    tabla.style = "Table Grid"
-    encabezado = tabla.rows[0].cells
-    encabezado[0].text = "Tema"
-    encabezado[1].text = "Valor unitario"
-    encabezado[2].text = "N° docentes"
-    encabezado[3].text = "Subtotal"
-
-    for fila in tabla_presupuesto:
-        row = tabla.add_row().cells
-        for i in range(4):
-            row[i].text = str(fila[i])
-
-# === 7. Guardar archivo final ===
+# === GUARDAR Y MOSTRAR BOTÓN DE DESCARGA ===
 doc.save(ruta_salida)
 
-# === 8. Mostrar botón de descarga SIEMPRE ===
 with open(ruta_salida, "rb") as f:
     st.download_button(
         label="📄 Descargar propuesta Word",
         data=f,
-        file_name="Propuesta_Formacion.docx",
+        file_name="Propuesta_FormulIA.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
