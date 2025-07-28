@@ -337,30 +337,6 @@ aiu = st.number_input(
 )
 st.session_state["aiu_porcentaje"] = aiu
 
-# Cargar hoja "DATOS ENTRADA"
-hoja_entrada = wb["DATOS ENTRADA"]
-
-# Obtener datos del formulario (asegúrate que esto está en session_state)
-poblacion = st.session_state.get("poblacion_por_sede", {})
-
-# Inicializar conteo por grado
-grados = ["0°", "1°", "2°", "3°", "4°", "5°"]
-total_estudiantes = {g: 0 for g in grados}
-total_docentes = {g: 0 for g in grados}
-
-# Sumar estudiantes y docentes por grado
-for sede_data in poblacion.values():
-    for grado, info in sede_data.items():
-        total_estudiantes[grado] += info.get("estudiantes", 0)
-        total_docentes[grado] += info.get("docentes", 0)
-
-# Escribir en la hoja "DATOS ENTRADA" (B3:C8)
-for idx, grado in enumerate(grados, start=3):
-    hoja_entrada[f"B{idx}"] = total_estudiantes.get(grado, 0)
-    hoja_entrada[f"C{idx}"] = total_docentes.get(grado, 0)
-
-# Guardar el archivo final
-wb.save("Propuesta_FormulIA.xlsx")
 
 
 # Botón para exportar
@@ -370,6 +346,26 @@ if st.button("📥 Generar archivo Excel con datos"):
     try:
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
+# Hoja de resumen de entrada por grado
+try:
+    ws_entrada = wb["DATOS ENTRADA"]
+
+    poblacion = st.session_state.get("poblacion_por_sede", {})
+    grados = ["0°", "1°", "2°", "3°", "4°", "5°"]
+    total_estudiantes = {g: 0 for g in grados}
+    total_docentes = {g: 0 for g in grados}
+
+    for sede_data in poblacion.values():
+        for grado, info in sede_data.items():
+            total_estudiantes[grado] += info.get("estudiantes", 0)
+            total_docentes[grado] += info.get("docentes", 0)
+
+    for idx, grado in enumerate(grados, start=3):  # B3:C8
+        ws_entrada[f"B{idx}"] = total_estudiantes.get(grado, 0)
+        ws_entrada[f"C{idx}"] = total_docentes.get(grado, 0)
+
+except Exception as e:
+    st.warning(f"⚠️ No se pudo actualizar la hoja DATOS ENTRADA: {e}")
 
         # Recuperar datos
         formacion = st.session_state.get("formacion_logistica", {})
