@@ -494,7 +494,7 @@ for p in doc.paragraphs:
 
 # === Agregar nuevas viñetas con datos reales ===
 for viñeta in viñetas_actualizadas:
-    doc.add_paragraph(viñeta, style="List Bullet")
+    doc.add_paragraph(viñeta)
 
 # === Guardar documento personalizado ===
 doc.save(ruta_salida)
