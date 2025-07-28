@@ -415,6 +415,7 @@ if st.button("📥 Generar archivo Excel con datos"):
 
 from docx import Document
 import streamlit as st
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 # === Cargar documento base ===
 ruta_word = "Ejemplo propuesta.docx"
@@ -426,6 +427,8 @@ nombre_organizacion = st.session_state.get("organizacion", "ORGANIZACIÓN")
 municipio = st.session_state.get("municipio", "MUNICIPIO")
 num_sedes = st.session_state.get("num_sedes", 0)
 lista_sedes = st.session_state.get("sedes", [])
+total_estudiantes = st.session_state.get("total_estudiantes", 0)
+total_docentes = st.session_state.get("total_docentes", 0)
 
 # === Función para pluralizar correctamente ===
 def frase_instituciones(n):
@@ -452,49 +455,45 @@ reemplazos_cantidad = [
 # === Frase con nombres fijos en la viñeta de población focalizada ===
 marcador_sedes_fijas = "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca"
 
-# === Viñetas antiguas que deben ser eliminadas ===
+# === Reemplazos generales en los párrafos del documento ===
+for p in doc.paragraphs:
+    if "Fundación Santo Domingo" in p.text:
+        p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
+    if "Barú" in p.text:
+        p.text = p.text.replace("Barú", municipio)
+    for texto_original in reemplazos_cantidad:
+        if texto_original in p.text:
+            p.text = p.text.replace(texto_original, texto_sedes)
+    if marcador_sedes_fijas in p.text:
+        p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
+
+# === Eliminar viñetas antiguas y ubicar nuevas después del texto de sedes ===
 viñetas_antiguas = [
     "• 37 docentes de transición a tercero",
     "• 568 estudiantes de transición a primero",
     "• 525 estudiantes de segundo a tercero"
 ]
 
-# === Obtener totales de estudiantes y docentes ===
-total_estudiantes = st.session_state.get("total_estudiantes", 0)
-total_docentes = st.session_state.get("total_docentes", 0)
+# Buscar índice donde están los nombres de las sedes
+insert_index = None
+for i, p in enumerate(doc.paragraphs):
+    if marcador_sedes_fijas in p.text or sedes_como_texto in p.text:
+        insert_index = i + 1
+        break
 
-viñetas_actualizadas = [
-    f"• {total_estudiantes} estudiantes",
-    f"• {total_docentes} docentes"
-]
+# Borrar viñetas antiguas en los siguientes párrafos
+if insert_index:
+    for i in range(insert_index, min(insert_index + 5, len(doc.paragraphs))):
+        if any(v in doc.paragraphs[i].text for v in viñetas_antiguas):
+            doc.paragraphs[i].clear()
 
-# === Reemplazos en los párrafos del documento ===
-for p in doc.paragraphs:
-    # Reemplazo de nombre de la organización
-    if "Fundación Santo Domingo" in p.text:
-        p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
-
-    # Reemplazo de municipio
-    if "Barú" in p.text:
-        p.text = p.text.replace("Barú", municipio)
-
-    # Reemplazo de cantidad de sedes (con gramática)
-    for texto_original in reemplazos_cantidad:
-        if texto_original in p.text:
-            p.text = p.text.replace(texto_original, texto_sedes)
-
-    # Reemplazo de nombres de sedes
-    if marcador_sedes_fijas in p.text:
-        p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
-
-    # Eliminar viñetas antiguas
-    for antigua in viñetas_antiguas:
-        if antigua in p.text:
-            p.text = ""
-
-# === Agregar nuevas viñetas con datos reales ===
-for viñeta in viñetas_actualizadas:
-    doc.add_paragraph(viñeta)
+    # Insertar nuevas viñetas justo después
+    nuevos_parrafos = [
+        f"• {total_estudiantes} estudiantes",
+        f"• {total_docentes} docentes"
+    ]
+    for j, texto in enumerate(reversed(nuevos_parrafos)):
+        doc.paragraphs.insert(insert_index, doc.add_paragraph(texto))
 
 # === Guardar documento personalizado ===
 doc.save(ruta_salida)
