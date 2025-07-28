@@ -195,7 +195,7 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
     # Cargar temas desde Excel (B3:B9)
     try:
         wb_temas = load_workbook("estructura de costos formuLIA.xlsx", data_only=True)
-        ws_temas = wb_temas[" FORMACIÓN"]
+        ws_temas = wb_temas["FORMACIÓN"]
         temas_formacion = [ws_temas[f"B{row}"].value for row in range(3, 10) if ws_temas[f"B{row}"].value]
     except Exception as e:
         st.error(f"❌ No se pudieron cargar los temas desde el Excel: {e}")
@@ -212,7 +212,7 @@ if "Formación" in componentes and modalidades.get("Formación") == "Presencial"
     if incluir_refrigerios == "Sí":
         try:
             wb_temp = load_workbook("estructura de costos formuLIA.xlsx", data_only=True)
-            ws_temp = wb_temp[" FORMACIÓN"]
+            ws_temp = wb_temp["FORMACIÓN"]
             valor_unitario = ws_temp["C24"].value or 8000
         except:
             valor_unitario = 8000
@@ -345,7 +345,7 @@ if st.button("📥 Generar archivo Excel con datos"):
 
     try:
         wb = load_workbook(excel_path)
-        ws = wb[" FORMACIÓN"]
+        ws = wb["FORMACIÓN"]
 
         # Recuperar datos
         formacion = st.session_state.get("formacion_logistica", {})
