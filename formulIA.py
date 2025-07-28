@@ -414,8 +414,17 @@ municipio = st.session_state.get("municipio", "MUNICIPIO")
 num_sedes = st.session_state.get("num_sedes", 0)
 lista_sedes = st.session_state.get("sedes", [])
 
-# === Preparar texto de sedes ===
-sedes_como_texto = ", ".join([f"Institución Educativa {s}" for s in lista_sedes if s])
+# === Función para pluralizar correctamente ===
+def frase_instituciones(n):
+    return "1 Institución Educativa" if n == 1 else f"{n} Instituciones Educativas"
+
+texto_sedes = frase_instituciones(num_sedes)
+
+# === Preparar texto de sedes con gramática correcta ===
+if num_sedes == 1 and lista_sedes:
+    sedes_como_texto = f"Institución Educativa {lista_sedes[0]}"
+else:
+    sedes_como_texto = ", ".join([f"Institución Educativa {s}" for s in lista_sedes if s])
 
 # === Lista de frases posibles que indican cantidad de sedes ===
 reemplazos_cantidad = [
@@ -440,12 +449,12 @@ for p in doc.paragraphs:
     if "Barú" in p.text:
         p.text = p.text.replace("Barú", municipio)
 
-    # Reemplazo de cantidad de sedes (flexible)
+    # Reemplazo de cantidad de sedes (con gramática)
     for texto_original in reemplazos_cantidad:
         if texto_original in p.text:
-            p.text = p.text.replace(texto_original, f"{num_sedes} Instituciones Educativas")
+            p.text = p.text.replace(texto_original, texto_sedes)
 
-    # Reemplazo de nombres de sedes
+    # Reemplazo de nombres de sedes (viñeta en población focalizada)
     if marcador_sedes_fijas in p.text:
         p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
 
