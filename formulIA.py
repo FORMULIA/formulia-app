@@ -8,6 +8,49 @@ st.subheader("Sistema automatizado para estructuración de propuestas")
 st.markdown("---")
 
 # Paso 1: Componentes
+
+with st.form("formulario_datos_generales"):
+    org = st.text_input("Nombre de la organización", value=st.session_state.get("organizacion", ""))
+    mun = st.text_input("Municipio del proyecto", value=st.session_state.get("municipio", ""))
+    
+    componentes = st.multiselect(
+        "¿Qué componentes incluye la propuesta?",
+        options=["Formación", "Monitoreo y Evaluación", "Materiales", "Operación"],
+        default=st.session_state.get("componentes", [])
+    )
+
+    estrategias = st.multiselect(
+        "¿Qué estrategias se van a aplicar?",
+        options=["Transición", "Primero", "Remediación"],
+        default=st.session_state.get("estrategias", [])
+    )
+
+    temas = st.multiselect(
+        "Selecciona los temas de formación",
+        options=["Evaluación y seguimiento", "Acompañamiento pedagógico", "Fortalecimiento institucional"],
+        default=st.session_state.get("temas_formacion", [])
+    )
+
+    docentes = st.number_input(
+        "Número total de docentes a formar",
+        min_value=0,
+        value=st.session_state.get("num_docentes", 0),
+        step=1
+    )
+
+    guardar = st.form_submit_button("💾 Guardar datos")
+
+    if guardar:
+        st.session_state["organizacion"] = org
+        st.session_state["municipio"] = mun
+        st.session_state["componentes"] = componentes
+        st.session_state["estrategias"] = estrategias
+        st.session_state["temas_formacion"] = temas
+        st.session_state["num_docentes"] = docentes
+        st.success("✅ Datos guardados correctamente.")
+
+
+
 st.header("1️⃣ ¿Qué componentes incluye tu propuesta?")
 componentes = st.multiselect(
     "Selecciona uno o varios:",
@@ -479,47 +522,3 @@ with open(ruta_salida, "rb") as f:
         file_name="Propuesta_Formacion.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-st.subheader("📌 Datos generales del proyecto")
-
-with st.form("formulario_datos_generales"):
-
-    org = st.text_input("Nombre de la organización", value=st.session_state.get("organizacion", ""))
-    mun = st.text_input("Municipio del proyecto", value=st.session_state.get("municipio", ""))
-
-    componentes = st.multiselect(
-        "¿Qué componentes incluye la propuesta?",
-        options=["Formación", "Monitoreo y Evaluación", "Materiales", "Operación"],
-        default=st.session_state.get("componentes", [])
-    )
-
-    estrategias = st.multiselect(
-        "¿Qué estrategias se van a aplicar?",
-        options=["Transición", "Primero", "Remediación"],
-        default=st.session_state.get("estrategias", [])
-    )
-
-    temas = st.multiselect(
-        "Selecciona los temas de formación",
-        options=["Evaluación y seguimiento", "Acompañamiento pedagógico", "Fortalecimiento institucional"],  # este listado se puede cargar dinámicamente del Excel
-        default=st.session_state.get("temas_formacion", [])
-    )
-
-    docentes = st.number_input(
-        "Número total de docentes a formar",
-        min_value=0,
-        value=st.session_state.get("num_docentes", 0),
-        step=1
-    )
-
-    guardar = st.form_submit_button("💾 Guardar datos")
-
-    if guardar:
-        st.session_state["organizacion"] = org
-        st.session_state["municipio"] = mun
-        st.session_state["componentes"] = componentes
-        st.session_state["estrategias"] = estrategias
-        st.session_state["temas_formacion"] = temas
-        st.session_state["num_docentes"] = docentes
-
-        st.success("✅ Todos los datos han sido guardados correctamente.")
-
