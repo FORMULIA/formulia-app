@@ -373,71 +373,103 @@ if st.button("📥 Generar archivo Excel con datos"):
 
 from docx import Document
 from openpyxl import load_workbook
+import streamlit as st
+import os
 
-# Rutas de archivos
-ruta_word = "Ejemplo propuesta.docx"
-ruta_excel = "estructura de costos formuLIA.xlsx"
-ruta_salida = "Propuesta_Formacion.docx"
+if (
+    "componentes" in st.session_state
+    and st.session_state["componentes"] == ["Formación"]  # Solo formación seleccionada
+    and all(k in st.session_state for k in ["organizacion", "municipio", "temas_formacion", "num_docentes"])
+):
 
-# Datos del formulario (estos deben venir de Streamlit o tu sistema)
-nombre_organizacion = "Fundación Mineros"
-municipio = "Buriticá"
-temas_seleccionados = ["Acompañamiento pedagógico", "Evaluación y seguimiento"]
-numero_docentes = 40
+    # Variables desde el formulario
+    nombre_organizacion = st.session_state["organizacion"]
+    municipio = st.session_state["municipio"]
+    temas_seleccionados = st.session_state["temas_formacion"]
+    numero_docentes = st.session_state["num_docentes"]
 
-# === Paso 1: Cargar plantilla Word y reemplazar textos clave ===
-doc = Document(ruta_word)
+    ruta_word = "Ejemplo propuesta.docx"
+    ruta_excel = "estructura de costos formuLIA.xlsx"
+    ruta_salida = "Propuesta_Formacion.docx"
 
-for p in doc.paragraphs:
-    if "Fundación Santo Domingo" in p.text:
-        p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
-    if "Barú" in p.text:
-        p.text = p.text.replace("Barú", municipio)
+    # === 1. Abrir Word y reemplazar textos ===
+    doc = Document(ruta_word)
+    for p in doc.paragraphs:
+        if "Fundación Santo Domingo" in p.text:
+            p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
+        if "Barú" in p.text:
+            p.text = p.text.replace("Barú", municipio)
 
-# === Paso 2: Cargar Excel y extraer valores de presupuesto ===
-wb = load_workbook(ruta_excel, data_only=True)
-resumen = wb["RESUMEN"]
+    # === 2. Limpiar secciones NO requeridas ===
+    conservar = False
+    nueva_parte = []
+    for p in doc.paragraphs:
+        texto = p.text.strip()
 
-# Filas 53 a 60 contienen el detalle de formación
-tabla_presupuesto = []
-for fila in range(53, 61):  # índice base 1
-    tema = resumen[f"A{fila}"].value
-    if tema and tema.strip() in temas_seleccionados:
-        costo_unitario = resumen[f"D{fila}"].value or 0
-        subtotal = costo_unitario * numero_docentes
-        tabla_presupuesto.append([
-            tema.strip(),
-            f"${costo_unitario:,.0f}",
-            numero_docentes,
-            f"${subtotal:,.0f}"
-        ])
+        if texto.startswith("Resumen") or texto.startswith("Introducción") or texto.startswith("Objetivo de la propuesta") or texto.startswith("Población focalizada"):
+            conservar = True
+        elif texto.startswith("Acciones para desarrollar"):
+            conservar = True
+        elif texto.startswith("2.") or texto.startswith("3.") or texto.startswith("4."):
+            conservar = False
+        elif texto.startswith("Inversión"):
+            conservar = True
 
-# === Paso 3: Agregar una tabla de resumen al final del documento ===
-doc.add_page_break()
-doc.add_paragraph("Resumen presupuestal del componente de formación", style="Heading 2")
+        if conservar:
+            nueva_parte.append(p)
 
-tabla = doc.add_table(rows=1, cols=4)
-tabla.style = "Table Grid"
-encabezado = tabla.rows[0].cells
-encabezado[0].text = "Tema"
-encabezado[1].text = "Valor unitario"
-encabezado[2].text = "N° docentes"
-encabezado[3].text = "Subtotal"
+    # Remover todo el contenido y reinsertar solo las secciones seleccionadas
+    for _ in range(len(doc.paragraphs)):
+        p = doc.paragraphs[0]
+        p.clear()
 
-for fila in tabla_presupuesto:
-    row = tabla.add_row().cells
-    for i in range(4):
-        row[i].text = str(fila[i])
+    for p in nueva_parte:
+        doc.add_paragraph(p.text, style=p.style)
 
-# === Paso 4: Guardar el nuevo documento ===
-doc.save(ruta_salida)
-print(f"Documento guardado como {ruta_salida}")
+    # === 3. Insertar solo los temas de formación seleccionados bajo el numeral 1 ===
+    doc.add_paragraph("\n1. FORMACIÓN", style="Heading 3")
+    for tema in temas_seleccionados:
+        doc.add_paragraph(f"• {tema}", style="List Bullet")
 
-with open("Propuesta_Formacion.docx", "rb") as f:
-    st.download_button(
-        label="📄 Descargar propuesta Word",
-        data=f,
-        file_name="Propuesta_Formacion.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    # === 4. Insertar tabla de inversión ===
+    wb = load_workbook(ruta_excel, data_only=True)
+    resumen = wb["RESUMEN"]
+    tabla_presupuesto = []
 
+    for fila in range(53, 61):  # Filas 53 a 60
+        tema = resumen[f"A{fila}"].value
+        if tema and tema.strip() in temas_seleccionados:
+            costo_unitario = resumen[f"D{fila}"].value or 0
+            subtotal = costo_unitario * numero_docentes
+            tabla_presupuesto.append([
+                tema.strip(),
+                f"${costo_unitario:,.0f}",
+                numero_docentes,
+                f"${subtotal:,.0f}"
+            ])
+
+    doc.add_paragraph("\nInversión", style="Heading 2")
+    tabla = doc.add_table(rows=1, cols=4)
+    tabla.style = "Table Grid"
+    encabezado = tabla.rows[0].cells
+    encabezado[0].text = "Tema"
+    encabezado[1].text = "Valor unitario"
+    encabezado[2].text = "N° docentes"
+    encabezado[3].text = "Subtotal"
+
+    for fila in tabla_presupuesto:
+        row = tabla.add_row().cells
+        for i in range(4):
+            row[i].text = str(fila[i])
+
+    # === 5. Guardar y mostrar botón ===
+    doc.save(ruta_salida)
+    with open(ruta_salida, "rb") as f:
+        st.download_button(
+            label="📄 Descargar propuesta Word",
+            data=f,
+            file_name="Propuesta_Formacion.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+else:
+    st.warning("⚠️ El Word solo se generará si seleccionas únicamente el componente de Formación.")
