@@ -415,7 +415,8 @@ if st.button("📥 Generar archivo Excel con datos"):
 
 from docx import Document
 import streamlit as st
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 # === Cargar documento base ===
 ruta_word = "Ejemplo propuesta.docx"
@@ -467,33 +468,37 @@ for p in doc.paragraphs:
     if marcador_sedes_fijas in p.text:
         p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
 
-# === Eliminar viñetas antiguas y ubicar nuevas después del texto de sedes ===
+# === Buscar el párrafo con las sedes para insertar viñetas justo después ===
+insert_after_paragraph = None
+for p in doc.paragraphs:
+    if marcador_sedes_fijas in p.text or sedes_como_texto in p.text:
+        insert_after_paragraph = p
+        break
+
+# === Eliminar viñetas antiguas ===
 viñetas_antiguas = [
     "• 37 docentes de transición a tercero",
     "• 568 estudiantes de transición a primero",
     "• 525 estudiantes de segundo a tercero"
 ]
+for p in doc.paragraphs:
+    if any(v in p.text for v in viñetas_antiguas):
+        p.clear()
 
-# Buscar índice donde están los nombres de las sedes
-insert_index = None
-for i, p in enumerate(doc.paragraphs):
-    if marcador_sedes_fijas in p.text or sedes_como_texto in p.text:
-        insert_index = i + 1
-        break
+# === Función para insertar párrafo después de uno existente ===
+def insertar_parrafo_despues(parrafo, texto):
+    nuevo_parrafo = OxmlElement("w:p")
+    run = OxmlElement("w:r")
+    t = OxmlElement("w:t")
+    t.text = texto
+    run.append(t)
+    nuevo_parrafo.append(run)
+    parrafo._element.addnext(nuevo_parrafo)
 
-# Borrar viñetas antiguas en los siguientes párrafos
-if insert_index:
-    for i in range(insert_index, min(insert_index + 5, len(doc.paragraphs))):
-        if any(v in doc.paragraphs[i].text for v in viñetas_antiguas):
-            doc.paragraphs[i].clear()
-
-    # Insertar nuevas viñetas justo después
-    nuevos_parrafos = [
-        f"• {total_estudiantes} estudiantes",
-        f"• {total_docentes} docentes"
-    ]
-    for j, texto in enumerate(reversed(nuevos_parrafos)):
-        doc.paragraphs.insert(insert_index, doc.add_paragraph(texto))
+# === Insertar nuevas viñetas con totales reales ===
+if insert_after_paragraph is not None:
+    insertar_parrafo_despues(insert_after_paragraph, f"• {total_estudiantes} estudiantes")
+    insertar_parrafo_despues(insert_after_paragraph, f"• {total_docentes} docentes")
 
 # === Guardar documento personalizado ===
 doc.save(ruta_salida)
