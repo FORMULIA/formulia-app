@@ -337,8 +337,6 @@ aiu = st.number_input(
 )
 st.session_state["aiu_porcentaje"] = aiu
 
-
-
 # Botón para exportar
 if st.button("📥 Generar archivo Excel con datos"):
     excel_path = "estructura de costos formuLIA.xlsx"
@@ -346,34 +344,33 @@ if st.button("📥 Generar archivo Excel con datos"):
     try:
         wb = load_workbook(excel_path)
         ws = wb[" FORMACIÓN"]
-# Hoja de resumen de entrada por grado
-try:
-    ws_entrada = wb["DATOS ENTRADA"]
 
-    poblacion = st.session_state.get("poblacion_por_sede", {})
-    grados = ["0°", "1°", "2°", "3°", "4°", "5°"]
-    total_estudiantes = {g: 0 for g in grados}
-    total_docentes = {g: 0 for g in grados}
+        # 🔹 ACTUALIZAR HOJA "DATOS ENTRADA"
+        try:
+            ws_entrada = wb["DATOS ENTRADA"]
+            poblacion = st.session_state.get("poblacion_por_sede", {})
+            grados = ["0°", "1°", "2°", "3°", "4°", "5°"]
+            total_estudiantes = {g: 0 for g in grados}
+            total_docentes = {g: 0 for g in grados}
 
-    for sede_data in poblacion.values():
-        for grado, info in sede_data.items():
-            total_estudiantes[grado] += info.get("estudiantes", 0)
-            total_docentes[grado] += info.get("docentes", 0)
+            for sede_data in poblacion.values():
+                for grado, info in sede_data.items():
+                    total_estudiantes[grado] += info.get("estudiantes", 0)
+                    total_docentes[grado] += info.get("docentes", 0)
 
-    for idx, grado in enumerate(grados, start=3):  # B3:C8
-        ws_entrada[f"B{idx}"] = total_estudiantes.get(grado, 0)
-        ws_entrada[f"C{idx}"] = total_docentes.get(grado, 0)
+            for idx, grado in enumerate(grados, start=3):  # B3:C8
+                ws_entrada[f"B{idx}"] = total_estudiantes.get(grado, 0)
+                ws_entrada[f"C{idx}"] = total_docentes.get(grado, 0)
 
-except Exception as e:
-    st.warning(f"⚠️ No se pudo actualizar la hoja DATOS ENTRADA: {e}")
+        except Exception as e:
+            st.warning(f"⚠️ No se pudo actualizar la hoja DATOS ENTRADA: {e}")
 
-        # Recuperar datos
+        # 🔹 Recuperar datos de session_state
         formacion = st.session_state.get("formacion_logistica", {})
         grupos = st.session_state.get("grupos_formacion", {}).get("n_grupos", 1)
         num_viajes = formacion.get("num_viajes", 3)
         horas_viaje = formacion.get("horas_viaje", 0)
         temas = formacion.get("temas", [])
-
         costo_transporte = formacion.get("costo_transporte", 0)
         valor_hotel = formacion.get("valor_hotel", 0)
 
@@ -390,7 +387,7 @@ except Exception as e:
 
         aiu = st.session_state.get("aiu_porcentaje", 35)
 
-        # ACTUALIZAR HOJA DE FORMACIÓN
+        # 🔹 ACTUALIZAR HOJA "FORMACIÓN"
         for row in range(3, 10):
             tema = ws[f"B{row}"].value
             if tema in temas:
@@ -399,14 +396,12 @@ except Exception as e:
                     ws[f"C{row}"] = horas * grupos
                 ws[f"F{row}"] = horas_viaje
                 ws[f"J{row}"] = aiu / 100
-                # No tocamos O si está seleccionado
             else:
                 ws[f"C{row}"] = 0
                 ws[f"F{row}"] = 0
                 ws[f"J{row}"] = aiu / 100
-                ws[f"O{row}"] = 0  # ← limpiar columna O si el tema no fue seleccionado
+                ws[f"O{row}"] = 0
 
-        # Otras celdas clave
         ws["C14"] = valor_hotel
         ws["C16"] = costo_transporte
         ws["D16"] = num_viajes
@@ -419,8 +414,7 @@ except Exception as e:
         ws["E18"] = aiu / 100
         ws["C27"] = aiu / 100
 
-
-        # Guardar y descargar
+        # 🔹 Guardar y descargar
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -435,7 +429,6 @@ except Exception as e:
 
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo Excel: {e}")
-
 from docx import Document
 import streamlit as st
 from docx.oxml import OxmlElement
