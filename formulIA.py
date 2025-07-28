@@ -403,46 +403,56 @@ if st.button("📥 Generar archivo Excel con datos"):
 from docx import Document
 import streamlit as st
 
-# Asegurar que el archivo base existe
+# === Cargar documento base ===
 ruta_word = "Ejemplo propuesta.docx"
 ruta_salida = "Propuesta_FormulIA.docx"
-
-# Cargar el Word base
 doc = Document(ruta_word)
 
-# === EXTRAER DATOS DEL SESSION_STATE ===
+# === Extraer datos desde session_state ===
 nombre_organizacion = st.session_state.get("organizacion", "ORGANIZACIÓN")
 municipio = st.session_state.get("municipio", "MUNICIPIO")
 num_sedes = st.session_state.get("num_sedes", 0)
 lista_sedes = st.session_state.get("sedes", [])
 
-# Construir texto de sedes
+# === Preparar texto de sedes ===
 sedes_como_texto = ", ".join([f"Institución Educativa {s}" for s in lista_sedes if s])
 
-# === REEMPLAZAR TEXTOS EN EL WORD ===
+# === Lista de frases posibles que indican cantidad de sedes ===
+reemplazos_cantidad = [
+    "3 Instituciones Educativas",
+    "3 instituciones educativas",
+    "3 sedes",
+    "3 I.E.",
+    "tres instituciones educativas",
+    "Tres Instituciones Educativas"
+]
+
+# === Frase con nombres fijos en la viñeta de población focalizada ===
+marcador_sedes_fijas = "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca"
+
+# === Reemplazos en los párrafos del documento ===
 for p in doc.paragraphs:
-    # Reemplazar organización
+    # Reemplazo de nombre de la organización
     if "Fundación Santo Domingo" in p.text:
         p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
 
-    # Reemplazar municipio
+    # Reemplazo de municipio
     if "Barú" in p.text:
         p.text = p.text.replace("Barú", municipio)
 
-    # Reemplazar número de sedes (en Resumen, Objetivo, etc.)
-    if "3 Instituciones Educativas" in p.text:
-        p.text = p.text.replace("3 Instituciones Educativas", f"{num_sedes} Instituciones Educativas")
+    # Reemplazo de cantidad de sedes (flexible)
+    for texto_original in reemplazos_cantidad:
+        if texto_original in p.text:
+            p.text = p.text.replace(texto_original, f"{num_sedes} Instituciones Educativas")
 
-    # Reemplazar nombres de sedes (en Población focalizada)
-    if "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca" in p.text:
-        p.text = p.text.replace(
-            "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca",
-            sedes_como_texto
-        )
+    # Reemplazo de nombres de sedes
+    if marcador_sedes_fijas in p.text:
+        p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
 
-# === GUARDAR Y MOSTRAR BOTÓN DE DESCARGA ===
+# === Guardar documento personalizado ===
 doc.save(ruta_salida)
 
+# === Mostrar botón para descarga ===
 with open(ruta_salida, "rb") as f:
     st.download_button(
         label="📄 Descargar propuesta Word",
