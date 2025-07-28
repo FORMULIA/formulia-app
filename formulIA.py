@@ -110,6 +110,19 @@ for sede in sedes:
 
 st.session_state["poblacion_por_sede"] = poblacion_por_sede
 
+# Calcular totales globales
+total_estudiantes = 0
+total_docentes = 0
+
+for sede_data in st.session_state["poblacion_por_sede"].values():
+    for grado_data in sede_data.values():
+        total_estudiantes += grado_data["estudiantes"]
+        total_docentes += grado_data["docentes"]
+
+# Guardar en session_state
+st.session_state["total_estudiantes"] = total_estudiantes
+st.session_state["total_docentes"] = total_docentes
+
 # Paso 7: Materiales
 st.header("6️⃣ Selección de materiales")
 materiales_por_estrategia = {
@@ -439,6 +452,22 @@ reemplazos_cantidad = [
 # === Frase con nombres fijos en la viñeta de población focalizada ===
 marcador_sedes_fijas = "Luis Felipe Cabrera, Institución Educativa de Santa Ana, Institución Educativa De Ararca"
 
+# === Viñetas antiguas que deben ser eliminadas ===
+viñetas_antiguas = [
+    "• 37 docentes de transición a tercero",
+    "• 568 estudiantes de transición a primero",
+    "• 525 estudiantes de segundo a tercero"
+]
+
+# === Obtener totales de estudiantes y docentes ===
+total_estudiantes = st.session_state.get("total_estudiantes", 0)
+total_docentes = st.session_state.get("total_docentes", 0)
+
+viñetas_actualizadas = [
+    f"• {total_estudiantes} estudiantes",
+    f"• {total_docentes} docentes"
+]
+
 # === Reemplazos en los párrafos del documento ===
 for p in doc.paragraphs:
     # Reemplazo de nombre de la organización
@@ -454,9 +483,18 @@ for p in doc.paragraphs:
         if texto_original in p.text:
             p.text = p.text.replace(texto_original, texto_sedes)
 
-    # Reemplazo de nombres de sedes (viñeta en población focalizada)
+    # Reemplazo de nombres de sedes
     if marcador_sedes_fijas in p.text:
         p.text = p.text.replace(marcador_sedes_fijas, sedes_como_texto)
+
+    # Eliminar viñetas antiguas
+    for antigua in viñetas_antiguas:
+        if antigua in p.text:
+            p.text = ""
+
+# === Agregar nuevas viñetas con datos reales ===
+for viñeta in viñetas_actualizadas:
+    doc.add_paragraph(viñeta, style="List Bullet")
 
 # === Guardar documento personalizado ===
 doc.save(ruta_salida)
