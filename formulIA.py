@@ -27,8 +27,23 @@ for comp in ["Formación", "Operación"]:
 
 # Paso 3: Organización y municipio
 st.header("2️⃣ Datos generales del proyecto")
-org = st.text_input("¿A qué organización se dirige la propuesta?")
-municipio = st.text_input("¿En qué municipio se ejecutará el proyecto?")
+
+# Mostrar los campos con valor por defecto desde session_state
+org = st.text_input(
+    "¿A qué organización se dirige la propuesta?",
+    value=st.session_state.get("organizacion", "")
+)
+municipio = st.text_input(
+    "¿En qué municipio se ejecutará el proyecto?",
+    value=st.session_state.get("municipio", "")
+)
+
+# Guardar los valores en session_state para uso posterior
+if org:
+    st.session_state["organizacion"] = org
+if municipio:
+    st.session_state["municipio"] = municipio
+
 
 # Paso 4: Estrategias pedagógicas
 st.header("3️⃣ Estrategias pedagógicas")
