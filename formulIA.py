@@ -479,4 +479,6 @@ with open(ruta_salida, "rb") as f:
         file_name="Propuesta_Formacion.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+st.write("📌 ORGANIZACIÓN:", st.session_state.get("organizacion"))
+st.write("📌 MUNICIPIO:", st.session_state.get("municipio"))
 
