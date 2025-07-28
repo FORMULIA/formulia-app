@@ -376,33 +376,40 @@ from openpyxl import load_workbook
 import streamlit as st
 import os
 
-# Asegurarse de que todos los datos necesarios estén presentes
-if all(k in st.session_state for k in ["organizacion", "municipio", "temas_formacion", "num_docentes", "componentes"]):
+# === 1. Cargar variables desde session_state con valores por defecto ===
+nombre_organizacion = st.session_state.get("organizacion", "Organización")
+municipio = st.session_state.get("municipio", "Municipio")
+temas_seleccionados = st.session_state.get("temas_formacion", [])
+numero_docentes = st.session_state.get("num_docentes", 0)
+componentes = st.session_state.get("componentes", [])
 
-    # 1. Variables desde el formulario
-    nombre_organizacion = st.session_state["organizacion"]
-    municipio = st.session_state["municipio"]
-    temas_seleccionados = st.session_state["temas_formacion"]
-    numero_docentes = st.session_state["num_docentes"]
-    componentes = st.session_state["componentes"]
+# === 2. Rutas de archivos ===
+ruta_word = "Ejemplo propuesta.docx"
+ruta_excel = "estructura de costos formuLIA.xlsx"
+ruta_salida = "Propuesta_Formacion.docx"
 
-    ruta_word = "Ejemplo propuesta.docx"
-    ruta_excel = "estructura de costos formuLIA.xlsx"
-    ruta_salida = "Propuesta_Formacion.docx"
+# === 3. Mostrar valores capturados para verificación (opcional) ===
+st.write("📌 Verificando datos:")
+st.write("Organización:", nombre_organizacion)
+st.write("Municipio:", municipio)
+st.write("Temas seleccionados:", temas_seleccionados)
+st.write("Número de docentes:", numero_docentes)
+st.write("Componentes seleccionados:", componentes)
 
-    # 2. Abrir Word y reemplazar textos
-    doc = Document(ruta_word)
-    for p in doc.paragraphs:
-        if "Fundación Santo Domingo" in p.text:
-            p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
-        if "Barú" in p.text:
-            p.text = p.text.replace("Barú", municipio)
+# === 4. Cargar documento Word y reemplazar texto base ===
+doc = Document(ruta_word)
+for p in doc.paragraphs:
+    if "Fundación Santo Domingo" in p.text:
+        p.text = p.text.replace("Fundación Santo Domingo", nombre_organizacion)
+    if "Barú" in p.text:
+        p.text = p.text.replace("Barú", municipio)
 
-    # 3. Cargar Excel
+# === 5. Cargar tabla del Excel para formación ===
+tabla_presupuesto = []
+try:
     wb = load_workbook(ruta_excel, data_only=True)
     resumen = wb["RESUMEN"]
-    tabla_presupuesto = []
-    for fila in range(53, 61):
+    for fila in range(53, 61):  # filas 53 a 60
         tema = resumen[f"A{fila}"].value
         if tema and tema.strip() in temas_seleccionados:
             costo_unitario = resumen[f"D{fila}"].value or 0
@@ -413,65 +420,63 @@ if all(k in st.session_state for k in ["organizacion", "municipio", "temas_forma
                 numero_docentes,
                 f"${subtotal:,.0f}"
             ])
+except Exception as e:
+    st.error(f"❌ Error cargando Excel: {e}")
 
-    # 4. Si SOLO se seleccionó Formación → aplicar limpieza especial
-    if componentes == ["Formación"]:
-        conservar = False
-        nueva_parte = []
-        for p in doc.paragraphs:
-            texto = p.text.strip()
+# === 6. Personalizar contenido solo si solo se seleccionó Formación ===
+if componentes == ["Formación"]:
+    conservar = False
+    nueva_parte = []
+    for p in doc.paragraphs:
+        texto = p.text.strip()
 
-            if texto.startswith("Resumen") or texto.startswith("Introducción") or texto.startswith("Objetivo de la propuesta") or texto.startswith("Población focalizada"):
-                conservar = True
-            elif texto.startswith("Acciones para desarrollar"):
-                conservar = True
-            elif texto.startswith("2.") or texto.startswith("3.") or texto.startswith("4."):
-                conservar = False
-            elif texto.startswith("Inversión"):
-                conservar = True
+        if texto.startswith("Resumen") or texto.startswith("Introducción") or texto.startswith("Objetivo de la propuesta") or texto.startswith("Población focalizada"):
+            conservar = True
+        elif texto.startswith("Acciones para desarrollar"):
+            conservar = True
+        elif texto.startswith("2.") or texto.startswith("3.") or texto.startswith("4."):
+            conservar = False
+        elif texto.startswith("Inversión"):
+            conservar = True
 
-            if conservar:
-                nueva_parte.append(p)
+        if conservar:
+            nueva_parte.append(p)
 
-        # Limpiar documento y agregar solo lo que se conserva
-        for _ in range(len(doc.paragraphs)):
-            p = doc.paragraphs[0]
-            p.clear()
+    for _ in range(len(doc.paragraphs)):
+        p = doc.paragraphs[0]
+        p.clear()
+    for p in nueva_parte:
+        doc.add_paragraph(p.text, style=p.style)
 
-        for p in nueva_parte:
-            doc.add_paragraph(p.text, style=p.style)
+    # Insertar Numeral 1 con temas seleccionados
+    doc.add_paragraph("\n1. FORMACIÓN", style="Heading 3")
+    for tema in temas_seleccionados:
+        doc.add_paragraph(f"• {tema}", style="List Bullet")
 
-        # Insertar Numeral 1 con temas seleccionados
-        doc.add_paragraph("\n1. FORMACIÓN", style="Heading 3")
-        for tema in temas_seleccionados:
-            doc.add_paragraph(f"• {tema}", style="List Bullet")
+    # Insertar tabla de inversión
+    doc.add_paragraph("\nInversión", style="Heading 2")
+    tabla = doc.add_table(rows=1, cols=4)
+    tabla.style = "Table Grid"
+    encabezado = tabla.rows[0].cells
+    encabezado[0].text = "Tema"
+    encabezado[1].text = "Valor unitario"
+    encabezado[2].text = "N° docentes"
+    encabezado[3].text = "Subtotal"
 
-        # Insertar tabla de inversión
-        doc.add_paragraph("\nInversión", style="Heading 2")
-        tabla = doc.add_table(rows=1, cols=4)
-        tabla.style = "Table Grid"
-        encabezado = tabla.rows[0].cells
-        encabezado[0].text = "Tema"
-        encabezado[1].text = "Valor unitario"
-        encabezado[2].text = "N° docentes"
-        encabezado[3].text = "Subtotal"
+    for fila in tabla_presupuesto:
+        row = tabla.add_row().cells
+        for i in range(4):
+            row[i].text = str(fila[i])
 
-        for fila in tabla_presupuesto:
-            row = tabla.add_row().cells
-            for i in range(4):
-                row[i].text = str(fila[i])
+# === 7. Guardar archivo final ===
+doc.save(ruta_salida)
 
-    # 5. Guardar archivo generado
-    doc.save(ruta_salida)
+# === 8. Mostrar botón de descarga SIEMPRE ===
+with open(ruta_salida, "rb") as f:
+    st.download_button(
+        label="📄 Descargar propuesta Word",
+        data=f,
+        file_name="Propuesta_Formacion.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
-    # 6. Mostrar botón de descarga SIEMPRE
-    with open(ruta_salida, "rb") as f:
-        st.download_button(
-            label="📄 Descargar propuesta Word",
-            data=f,
-            file_name="Propuesta_Formacion.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
-
-else:
-    st.warning("⚠️ Faltan datos en el formulario para generar la propuesta.")
